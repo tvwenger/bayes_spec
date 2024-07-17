@@ -1,0 +1,145 @@
+digraph {
+
+	graph [newrank=false,
+
+		rankdir=TB,
+
+		splines=ortho
+
+	];
+
+	subgraph "clustercoeff (3)" {
+
+		graph [label="coeff (3)",
+
+			labeljust=r,
+
+			labelloc=b,
+
+			style=rounded
+
+		];
+
+		observation_baseline_norm	[label="observation_baseline_norm
+
+~
+
+Normal",
+
+			shape=ellipse];
+
+	}
+
+	subgraph "clustercloud (3)" {
+
+		graph [label="cloud (3)",
+
+			labeljust=r,
+
+			labelloc=b,
+
+			style=rounded
+
+		];
+
+		fwhm	[label="fwhm
+
+~
+
+Deterministic",
+
+			shape=box];
+
+		amplitude	[label="amplitude
+
+~
+
+Deterministic",
+
+			shape=box];
+
+		velocity_norm	[label="velocity_norm
+
+~
+
+Normal",
+
+			shape=ellipse];
+
+		fwhm_norm	[label="fwhm_norm
+
+~
+
+Gamma",
+
+			shape=ellipse];
+
+		amplitude_norm	[label="amplitude_norm
+
+~
+
+HalfNormal",
+
+			shape=ellipse];
+
+		line_area	[label="line_area
+
+~
+
+Deterministic",
+
+			shape=box];
+
+		velocity	[label="velocity
+
+~
+
+Deterministic",
+
+			shape=box];
+
+	}
+
+	subgraph "clusterobservation (501)" {
+
+		graph [label="observation (501)",
+
+			labeljust=r,
+
+			labelloc=b,
+
+			style=rounded
+
+		];
+
+		observation_norm	[label="observation_norm
+
+~
+
+Normal",
+
+			shape=ellipse,
+
+			style=filled];
+
+	}
+
+	observation_baseline_norm -> observation_norm	[minlen=1];
+
+	fwhm -> line_area;
+
+	fwhm -> observation_norm;
+
+	amplitude -> line_area;
+
+	amplitude -> observation_norm;
+
+	velocity_norm -> velocity	[minlen=1];
+
+	fwhm_norm -> fwhm	[minlen=1];
+
+	amplitude_norm -> amplitude	[minlen=1];
+
+	velocity -> observation_norm;
+
+}
