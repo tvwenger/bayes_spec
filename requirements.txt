@@ -1,0 +1,8 @@
+numpy
+pymc>=5
+pytensor
+arviz
+matplotlib
+scipy
+scikit-learn
+graphviz

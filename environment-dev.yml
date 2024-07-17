@@ -1,0 +1,16 @@
+name: bayes_spec-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy
+  - pymc>=5
+  - pytensor
+  - arviz
+  - matplotlib
+  - scipy
+  - scikit-learn
+  - graphviz
+  - jupyter_contrib_nbextensions
+  - jupyter_nbextensions_configurator
+  - ipywidgets
