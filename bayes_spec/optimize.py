@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 Changelog:
 Trey Wenger - September 2023
 Trey Wenger - June 2024 - Updates to mimic "caribou" framework
+Trey Wenger - July 2024 - Add SMC sampling
 """
 
 from typing import Type
@@ -148,13 +149,44 @@ class Optimize:
                     )
                 print()
 
+    def sample_smc_all(self, **kwargs):
+        """
+        Sample posterior of all models using SMC.
+
+        Inputs:
+            see model.sample_smc
+
+        Returns: Nothing
+        """
+        if self.verbose:
+            print(f"Null hypothesis BIC = {self.models[1].null_bic():.3e}")
+
+        for n_cloud in self.n_clouds:
+            if self.verbose:
+                print(f"Sampling n_cloud = {n_cloud} posterior...")
+            self.models[n_cloud].sample_smc(**kwargs)
+            self.models[n_cloud].solve()
+            if self.verbose:
+                for solution in self.models[n_cloud].solutions:
+                    print(
+                        f"n_cloud = {n_cloud} "
+                        + f"solution = {solution} "
+                        + f"BIC = {self.models[n_cloud].bic(solution=solution):.3e}"
+                    )
+                print()
+
     def optimize(
-        self, bic_threshold: float = 10.0, fit_kwargs={}, sample_kwargs={}, approx=True
+        self,
+        bic_threshold: float = 10.0,
+        fit_kwargs={},
+        sample_kwargs={},
+        smc=False,
+        approx=True,
     ):
         """
         Determine the optimal number of clouds by minimizing the BIC
-        using MCMC, or variational inference and then sampling the best model using
-        MCMC. The labeling degeneracy is solved.
+        using MCMC, SMC, or variational inference and then sampling
+        the best model using MCMC or SMC. The labeling degeneracy is solved.
 
         Inputs:
             bic_threshold :: scalar
@@ -163,6 +195,8 @@ class Optimize:
                 Arguments passed to fit()
             sample_kwargs :: dictionary
                 Arguments passed to sample()
+            smc :: boolean
+                If True, use SMC instead of MCMC.
             approx :: boolean
                 If True, use VI for first pass, then sample best with MCMC.
                 Otherwise, MCMC (slower, better) every model (don't set max_n_clouds too high!).
@@ -172,6 +206,9 @@ class Optimize:
         if approx:
             # fit all with VI
             self.fit_all(**fit_kwargs)
+        elif smc:
+            # sample with SMC
+            self.sample_smc_all(**sample_kwargs)
         else:
             # sample with MCMC
             self.sample_all(**sample_kwargs)
@@ -196,5 +233,8 @@ class Optimize:
             # sample best
             if self.verbose:
                 print(f"Sampling best model (n_cloud = {self.best_model.n_clouds})...")
-            self.best_model.sample(**sample_kwargs)
+            if smc:
+                self.best_model.sample_smc(**sample_kwargs)
+            else:
+                self.best_model.sample(**sample_kwargs)
             self.best_model.solve()

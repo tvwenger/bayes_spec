@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Changelog:
 Trey Wenger - March 2024
+Trey Wenger - July 2024 - Add sample_smc
 """
 
 import os
@@ -563,6 +564,40 @@ class BaseModel(ABC):
             ).data.sum()
             if num_divergences > 0:
                 print(f"There were {num_divergences} divergences in converged chains.")
+
+    def sample_smc(
+        self,
+        **kwargs,
+    ):
+        """
+        Sample posterior distribution using Sequential Monte Carlo (SMC).
+
+        Inputs:
+            **kwargs :: additional keyword arguments
+                Keyword arguments passed to pm.sample_smc
+                (draws, chains, cores)
+
+        Returns: Nothing
+        """
+        # validate
+        self._validate()
+
+        # reset convergence checks
+        self.reset_results()
+
+        with self.model:
+            self.trace = pm.sample_smc(
+                progressbar=self.verbose,
+                compute_convergence_checks=False,
+                **kwargs,
+            )
+
+        # diagnostics
+        if self.verbose:
+            # converged chains
+            good_chains = self.good_chains()
+            if len(good_chains) < len(self.trace.posterior.chain):
+                print(f"Only {len(good_chains)} chains appear converged.")
 
     def solve(self, p_threshold=0.9):
         """
