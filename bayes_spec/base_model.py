@@ -27,6 +27,7 @@ Trey Wenger - July 2024 - Add sample_smc
 import os
 import warnings
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import pymc as pm
 from pymc.variational.callbacks import CheckParametersConvergence
@@ -86,8 +87,7 @@ class BaseModel(ABC):
             "cloud": range(self.n_clouds),
         }
         self._n_data = 0
-        for key, dataset in self.data.items():
-            coords[key] = dataset.spectral
+        for _, dataset in self.data.items():
             self._n_data += len(dataset.spectral)
         self.model = pm.Model(coords=coords)
 
@@ -152,15 +152,8 @@ class BaseModel(ABC):
 
     def _validate(self):
         """
-        Validate the model by confirming that the likelihood is included
-        and properly named relative to the data.
+        Validate the model by checking the log probability at the initial point.
         """
-        for key in self.data.keys():
-            if f"{key}_norm" not in self.model:
-                raise ValueError(
-                    f"Likelihood variable {key}_norm not found in model! Mis-specified model?"
-                )
-
         # check that model can be evaluated
         if not np.isfinite(self.model.logp().eval(self.model.initial_point())):
             raise ValueError(
@@ -202,7 +195,9 @@ class BaseModel(ABC):
         n_params = len(self.data) * (self.baseline_degree + 1)
         return n_params * np.log(self._n_data) - 2.0 * lnlike
 
-    def lnlike_mean_point_estimate(self, chain: int = None, solution: int = None):
+    def lnlike_mean_point_estimate(
+        self, chain: Optional[int] = None, solution: Optional[int] = None
+    ):
         """
         Evaluate model log-likelihood at the mean point estimate of posterior samples.
 
@@ -249,7 +244,7 @@ class BaseModel(ABC):
 
         return float(self.model.logp().eval(params))
 
-    def bic(self, chain: int = None, solution: int = None):
+    def bic(self, chain: Optional[int] = None, solution: Optional[int] = None):
         """
         Calculate the Bayesian information criterion at the mean point estimate.
 
@@ -314,38 +309,54 @@ class BaseModel(ABC):
         self._good_chains = self.trace.posterior.chain.data[good]
         return self._good_chains
 
-    def add_baseline_priors(self):
+    def add_baseline_priors(self, prior_baseline_coeff=1.0):
         """
-        Add normalized baseline priors to model and evaluate the
-        normalized baseline model.
+        Add baseline priors to model. The baseline priors are spectrally
+        normalized, such that
+        baseline_norm = coeff[0] + coeff[1]*spectral_norm + coeff[2]*spectral_norm**2 + ...
+        where spectral_norm is the normalized spectral axis and baseline_norm is the
+        normalized brightness data (both normalized to zero mean and unit variance).
+        Thus, prior_baseline_coeff can be assumed near unity.
+
+        Inputs:
+            prior_baseline_coeff :: scalar
+                Width of the Normal prior distribution on the normalized
+                baseline polynomial coefficients
+
+        Returns: Nothing
+        """
+        with self.model:
+            for key in self.data.keys():
+                # add the normalized prior
+                _ = pm.Normal(
+                    f"{key}_baseline_norm",
+                    mu=0.0,
+                    sigma=prior_baseline_coeff,
+                    dims="coeff",
+                )
+
+    def predict_baseline(self):
+        """
+        Predict the un-normalized baseline model.
 
         Inputs: None
 
         Returns:
             baseline_model :: dictionary
                 Dictionary with keys like those in self.data, where each
-                value is the normalized baseline model
+                value is the un-normalized baseline model
         """
         baseline_model = {}
-        with self.model:
-            for key, dataset in self.data.items():
-                # add the normalized prior
-                coeffs = pm.Normal(
-                    f"{key}_baseline_norm",
-                    mu=0.0,
-                    sigma=1.0,
-                    dims="coeff",
-                )
-
-                # evaluate the baseline
-                baseline_norm = pt.sum(
-                    [
-                        coeffs[i] * dataset.spectral_norm**i
-                        for i in range(self.baseline_degree + 1)
-                    ],
-                    axis=0,
-                )
-                baseline_model[key] = baseline_norm
+        for key, dataset in self.data.items():
+            # evaluate the baseline
+            baseline_norm = pt.sum(
+                [
+                    self.model[f"{key}_baseline_norm"][i] * dataset.spectral_norm**i
+                    for i in range(self.baseline_degree + 1)
+                ],
+                axis=0,
+            )
+            baseline_model[key] = dataset.unnormalize_brightness(baseline_norm)
         return baseline_model
 
     def prior_predictive_check(self, samples: int = 50, plot_fname: str = None):
@@ -365,10 +376,6 @@ class BaseModel(ABC):
         """
         with self.model:
             trace = pm.sample_prior_predictive(samples=samples, random_seed=self.seed)
-            for key, dataset in self.data.items():
-                trace.prior_predictive[key] = dataset.unnormalize_brightness(
-                    trace.prior_predictive[f"{key}_norm"]
-                )
 
         if plot_fname is not None:
             plots.plot_predictive(self.data, trace.prior_predictive, plot_fname)
@@ -376,7 +383,10 @@ class BaseModel(ABC):
         return trace
 
     def posterior_predictive_check(
-        self, solution: int = None, thin: int = 100, plot_fname: str = None
+        self,
+        solution: Optional[int] = None,
+        thin: int = 100,
+        plot_fname: Optional[str] = None,
     ):
         """
         Generate posterior predictive samples, and optionally plot the outcomes.
@@ -409,17 +419,12 @@ class BaseModel(ABC):
                 extend_inferencedata=True,
                 random_seed=self.seed,
             )
-            for key, dataset in self.data.items():
-                trace.posterior_predictive[key] = dataset.unnormalize_brightness(
-                    trace.posterior_predictive[f"{key}_norm"]
-                )
 
         if plot_fname is not None:
             plots.plot_predictive(
                 self.data,
                 trace.posterior_predictive,
                 plot_fname,
-                posterior=posterior,
             )
 
         return trace
@@ -480,8 +485,8 @@ class BaseModel(ABC):
         init: str = "advi+adapt_diag",
         n_init: int = 500_000,
         chains: int = 4,
-        init_kwargs: dict = None,
-        nuts_kwargs: dict = None,
+        init_kwargs: Optional[dict] = None,
+        nuts_kwargs: Optional[dict] = None,
         **kwargs,
     ):
         """
@@ -708,7 +713,7 @@ class BaseModel(ABC):
             fig.savefig(plot_fname, bbox_inches="tight")
             plt.close(fig)
 
-    def plot_pair(self, plot_fname: str, solution: int = None):
+    def plot_pair(self, plot_fname: str, solution: Optional[int] = None):
         """
         Generate pair plots from clustered posterior samples.
 

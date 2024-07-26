@@ -206,7 +206,7 @@ class NewModel(BaseModel):
 
 ## Posterior Sampling: SMC
 
-Finally, `bayes_spec` implements Sequential Monte Carlo (SMC) sampling via `model.sample_smc()`. SMC can significantly improve performance for degenerate models with multi-modal posterior distributions.
+Finally, `bayes_spec` implements Sequential Monte Carlo (SMC) sampling via `model.sample_smc()`. SMC can significantly improve performance for degenerate models with multi-modal posterior distributions, although it struggles with high dimensional models.
 
 ## Posterior Clustering: Gaussian Mixture Models
 
@@ -214,11 +214,11 @@ Assuming that we have drawn posterior samples via MCMC or SMC using multiple ind
 
 It is also possible that the model solution is degenerate, the posterior distribution is strongly multi-modal, and each chain converges to different, unique solutions.
 
-`bayes_spec` uses Gaussian Mixture Models (GMMs) to break the labeling degeneracy and identify unique solutions. After sampling, execute `model.solve()` to fit a GMM to the posterior samples of each chain individually. Unique solutions are identified by discrepant GMM fits, and we break the labeling degeneracy by adopting the most common cloud order amongst chains.
+`bayes_spec` uses Gaussian Mixture Models (GMMs) to break the labeling degeneracy and identify unique solutions. After sampling, execute `model.solve()` to fit a GMM to the posterior samples of each chain individually. Unique solutions are identified by discrepant GMM fits, and we break the labeling degeneracy by adopting the most common cloud order amongst chains. The user defines which parameters are used for the GMM clustering.
 
 ## Optimization
 
-`bayes_spec` can optimize the number of clouds in addition to the other model parameters. The `Optimize` class will use either VI or MCMC to estimate the preferred number of clouds.
+`bayes_spec` can optimize the number of clouds in addition to the other model parameters. The `Optimize` class will use VI, MCMC, and/or SMC to estimate the preferred number of clouds.
 
 # Syntax & Examples
 

@@ -71,16 +71,12 @@ class SpecData:
         # normalize spectral axis using standard normalization
         self._spectral_offset = np.mean(self.spectral)
         self._spectral_scale = np.std(self.spectral)
-        self.spectral_norm = (
-            self.spectral - self._spectral_offset
-        ) / self._spectral_scale
+        self.spectral_norm = self.normalize_spectral(self.spectral)
 
-        # normalize brightness data by the noise
-        self._brightness_offset = 0.0
-        self._brightness_scale = self.noise
-        self.brightness_norm = (
-            self.brightness - self._brightness_offset
-        ) / self._brightness_scale
+        # normalize brightness data using standard normalization
+        self._brightness_offset = np.mean(self.brightness)
+        self._brightness_scale = np.std(self.brightness)
+        self.brightness_norm = self.normalize_brightness(brightness)
 
     def _normalize(self, x, offset, scale):
         """
