@@ -24,6 +24,7 @@ Trey Wenger - March 2024
 """
 
 import warnings
+from typing import Optional
 
 import arviz as az
 import arviz.labels as azl
@@ -38,7 +39,6 @@ def plot_predictive(
     data: dict[str, SpecData],
     predictive: az.InferenceData,
     plot_fname: str,
-    posterior: az.InferenceData = None,
 ):
     """
     Generate plots of predictive checks.
@@ -51,9 +51,6 @@ def plot_predictive(
             Predictive samples
         plot_fname :: string
             Plot filename
-        posterior :: az.InferenceData
-            If not None, plot individual posterior predictions
-            for individual clouds
 
     Returns: Nothing
     """
@@ -89,7 +86,9 @@ def plot_predictive(
     plt.close(fig)
 
 
-def plot_pair(trace, var_names, label, fname, labeller: azl.MapLabeller = None):
+def plot_pair(
+    trace, var_names, label, fname, labeller: Optional[azl.MapLabeller] = None
+):
     """
     Pair plot helper.
 

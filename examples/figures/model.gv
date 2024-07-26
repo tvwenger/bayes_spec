@@ -42,45 +42,13 @@ Normal",
 
 		];
 
-		amplitude	[label="amplitude
-
-~
-
-Deterministic",
-
-			shape=box];
-
-		amplitude_norm	[label="amplitude_norm
-
-~
-
-HalfNormal",
-
-			shape=ellipse];
-
-		fwhm_norm	[label="fwhm_norm
+		line_area_norm	[label="line_area_norm
 
 ~
 
 Gamma",
 
 			shape=ellipse];
-
-		fwhm	[label="fwhm
-
-~
-
-Deterministic",
-
-			shape=box];
-
-		line_area	[label="line_area
-
-~
-
-Deterministic",
-
-			shape=box];
 
 		velocity_norm	[label="velocity_norm
 
@@ -98,11 +66,43 @@ Deterministic",
 
 			shape=box];
 
+		fwhm	[label="fwhm
+
+~
+
+Deterministic",
+
+			shape=box];
+
+		amplitude	[label="amplitude
+
+~
+
+Deterministic",
+
+			shape=box];
+
+		line_area	[label="line_area
+
+~
+
+Deterministic",
+
+			shape=box];
+
+		fwhm_norm	[label="fwhm_norm
+
+~
+
+Gamma",
+
+			shape=ellipse];
+
 	}
 
-	subgraph "clusterobservation (501)" {
+	subgraph cluster501 {
 
-		graph [label="observation (501)",
+		graph [label=501,
 
 			labeljust=r,
 
@@ -112,7 +112,7 @@ Deterministic",
 
 		];
 
-		observation_norm	[label="observation_norm
+		observation	[label="observation
 
 ~
 
@@ -124,22 +124,22 @@ Normal",
 
 	}
 
-	observation_baseline_norm -> observation_norm	[minlen=1];
+	observation_baseline_norm -> observation	[minlen=1];
 
-	amplitude -> line_area;
-
-	amplitude -> observation_norm;
-
-	amplitude_norm -> amplitude	[minlen=1];
-
-	fwhm_norm -> fwhm	[minlen=1];
-
-	fwhm -> line_area;
-
-	fwhm -> observation_norm;
+	line_area_norm -> line_area	[minlen=1];
 
 	velocity_norm -> velocity	[minlen=1];
 
-	velocity -> observation_norm;
+	velocity -> observation;
+
+	fwhm -> amplitude;
+
+	fwhm -> observation;
+
+	amplitude -> observation;
+
+	line_area -> amplitude;
+
+	fwhm_norm -> fwhm	[minlen=1];
 
 }
