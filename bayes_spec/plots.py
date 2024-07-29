@@ -54,7 +54,7 @@ def plot_predictive(
 
     Returns: Nothing
     """
-    fig, axes = plt.subplots(len(data), squeeze=False)
+    fig, axes = plt.subplots(len(data), squeeze=False, layout="constrained")
     num_chains = len(predictive.chain)
 
     # Loop over datasets
@@ -82,7 +82,7 @@ def plot_predictive(
         )
         axes[idx][0].set_xlabel(dataset.xlabel)
         axes[idx][0].set_ylabel(dataset.ylabel)
-    fig.savefig(plot_fname, bbox_inches="tight")
+    fig.savefig(plot_fname)
     plt.close(fig)
 
 
@@ -142,5 +142,5 @@ def plot_pair(
         ax.grid(False)
     fig = axes.ravel()[0].figure
     fig.text(0.7, 0.8, label, ha="center", va="center", fontsize=fontsize)
-    fig.savefig(fname, bbox_inches="tight")
+    fig.savefig(fname)
     plt.close(fig)
