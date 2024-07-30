@@ -431,10 +431,10 @@ class BaseModel(ABC):
 
     def fit(
         self,
-        n: int = 500_000,
+        n: int = 100_000,
         draws: int = 1_000,
-        rel_tolerance: float = 0.01,
-        abs_tolerance: float = 0.01,
+        rel_tolerance: float = 0.001,
+        abs_tolerance: float = 0.001,
         learning_rate: float = 1e-3,
         **kwargs,
     ):

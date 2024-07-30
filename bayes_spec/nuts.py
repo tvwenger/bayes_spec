@@ -31,10 +31,10 @@ from pymc.step_methods.hmc import quadpotential
 def init_nuts(
     model,
     init: str = "advi+adapt_diag",
-    n_init: int = 500_000,
+    n_init: int = 100_000,
     chains: int = 4,
-    rel_tolerance: float = 0.01,
-    abs_tolerance: float = 0.01,
+    rel_tolerance: float = 0.001,
+    abs_tolerance: float = 0.001,
     learning_rate: float = 1e-3,
     nuts_kwargs: dict = None,
     seed: int = 1234,
