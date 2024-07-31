@@ -483,7 +483,7 @@ class BaseModel(ABC):
     def sample(
         self,
         init: str = "advi+adapt_diag",
-        n_init: int = 500_000,
+        n_init: int = 100_000,
         chains: int = 4,
         init_kwargs: Optional[dict] = None,
         nuts_kwargs: Optional[dict] = None,
