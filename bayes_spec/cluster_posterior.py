@@ -28,6 +28,7 @@ from typing import Iterable
 
 import arviz as az
 import numpy as np
+import xarray
 from scipy.stats import chi2, mode
 from scipy.spatial.distance import mahalanobis
 from sklearn.mixture import GaussianMixture
@@ -159,27 +160,26 @@ def cluster_posterior(
             ]
 
         # Add solutions to the trace
-        coords = dict(trace.coords)
+        coords = trace.coords
         coords["chain"] = list(solution["chains"].keys())
         dims = {}
         posterior_clustered = {}
         for param, samples in trace.data_vars.items():
             if "cloud" in samples.coords:
                 # break labeling degeneracy
-                posterior_clustered[param] = np.array(
+                posterior_clustered[param] = xarray.concat(
                     [
-                        samples.sel(chain=chain, cloud=order["cloud_order"]).data
+                        samples.sel(chain=chain, cloud=order["cloud_order"])
                         for chain, order in solution["chains"].items()
-                    ]
+                    ],
+                    dim="chain",
                 )
             else:
-                posterior_clustered[param] = np.array(
-                    [
-                        samples.sel(chain=chain).data
-                        for chain in solution["chains"].keys()
-                    ]
+                posterior_clustered[param] = xarray.concat(
+                    [samples.sel(chain=chain) for chain in solution["chains"].keys()],
+                    dim="chain",
                 )
-            dims[param] = list(samples.coords)
+            dims[param] = list(samples.dims)
         solution["posterior_clustered"] = posterior_clustered
         solution["coords"] = coords
         solution["dims"] = dims
