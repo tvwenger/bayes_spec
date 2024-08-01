@@ -42,21 +42,13 @@ Normal",
 
 		];
 
-		fwhm_norm	[label="fwhm_norm
+		velocity	[label="velocity
 
 ~
 
-Gamma",
+Deterministic",
 
-			shape=ellipse];
-
-		velocity_norm	[label="velocity_norm
-
-~
-
-Normal",
-
-			shape=ellipse];
+			shape=box];
 
 		line_area_norm	[label="line_area_norm
 
@@ -66,14 +58,6 @@ Gamma",
 
 			shape=ellipse];
 
-		amplitude	[label="amplitude
-
-~
-
-Deterministic",
-
-			shape=box];
-
 		fwhm	[label="fwhm
 
 ~
@@ -82,7 +66,23 @@ Deterministic",
 
 			shape=box];
 
-		velocity	[label="velocity
+		velocity_norm	[label="velocity_norm
+
+~
+
+Normal",
+
+			shape=ellipse];
+
+		fwhm_norm	[label="fwhm_norm
+
+~
+
+Gamma",
+
+			shape=ellipse];
+
+		amplitude	[label="amplitude
 
 ~
 
@@ -126,19 +126,19 @@ Normal",
 
 	observation_baseline_norm -> observation	[minlen=1];
 
-	fwhm_norm -> fwhm	[minlen=1];
-
-	velocity_norm -> velocity	[minlen=1];
+	velocity -> observation;
 
 	line_area_norm -> line_area	[minlen=1];
-
-	amplitude -> observation;
 
 	fwhm -> amplitude;
 
 	fwhm -> observation;
 
-	velocity -> observation;
+	velocity_norm -> velocity	[minlen=1];
+
+	fwhm_norm -> fwhm	[minlen=1];
+
+	amplitude -> observation;
 
 	line_area -> amplitude;
 

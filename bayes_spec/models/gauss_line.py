@@ -81,7 +81,7 @@ class GaussLine(BaseModel):
             }
         )
 
-    def define(
+    def add_priors(
         self,
         prior_line_area: float = 100.0,
         prior_fwhm: float = 25.0,
@@ -89,7 +89,7 @@ class GaussLine(BaseModel):
         prior_baseline_coeff: float = 1.0,
     ):
         """
-        Model definition. The SpecData key must be "observation".
+        Add priors to the model.
 
         Inputs:
             prior_line_area :: scalar
@@ -136,22 +136,53 @@ class GaussLine(BaseModel):
                 sigma=1.0,
                 dims="cloud",
             )
-            velocity = pm.Deterministic(
+            _ = pm.Deterministic(
                 "velocity",
                 prior_velocity[0] + prior_velocity[1] * velocity_norm,
                 dims="cloud",
             )
 
             # Deterministic amplitude per cloud
-            amplitude = pm.Deterministic(
+            _ = pm.Deterministic(
                 "amplitude",
                 line_area / fwhm / np.sqrt(np.pi / (4.0 * np.log(2.0))),
                 dims="cloud",
             )
 
-            # Predict spectrum
-            predicted = self.predict(amplitude, velocity, fwhm)
+    def predict(self):
+        """
+        Predict emission spectrum from model parameters.
 
+        Inputs: None
+
+        Returns: predicted
+            predicted :: 1-D array of scalars
+                Predicted emission spectrum (K)
+        """
+        # Evaluate line profile model per cloud, sum over clouds
+        predicted_line = gaussian(
+            self.data["observation"].spectral[:, None],
+            self.model["amplitude"],
+            self.model["velocity"],
+            self.model["fwhm"],
+        ).sum(axis=1)
+
+        # Add baseline model
+        baseline_models = self.predict_baseline()
+        predicted = predicted_line + baseline_models["observation"]
+        return predicted
+
+    def add_likelihood(self):
+        """
+        Add the likelihood to the model. The SpecData key must be "observation".
+
+        Inputs: None
+        Returns: Nothing
+        """
+        # Predict emission
+        predicted = self.predict()
+
+        with self.model:
             # Evaluate likelihood
             _ = pm.Normal(
                 "observation",
@@ -159,29 +190,3 @@ class GaussLine(BaseModel):
                 sigma=self.data["observation"].noise,
                 observed=self.data["observation"].brightness,
             )
-
-    def predict(self, amplitude, velocity, fwhm):
-        """
-        Model definition. The SpecData key must be "observation".
-
-        Inputs:
-            amplitude :: 1-D array of scalars
-                Gaussian ampltiudes (K)
-            velocity :: 1-D array of scalars
-                Gaussian centroid velocities (km s-1)
-            fwhm :: 1-D array of scalars
-                Gaussian FWHM line widths (km/s)
-
-        Returns:
-            predicted :: 1-D array of scalars
-                Predicted spectrum (un-normalized)
-        """
-        # Evaluate line profile model per cloud, sum over clouds
-        predicted_line = gaussian(
-            self.data["observation"].spectral[:, None], amplitude, velocity, fwhm
-        ).sum(axis=1)
-
-        # Add baseline model
-        baseline_models = self.predict_baseline()
-        predicted = predicted_line + baseline_models["observation"]
-        return predicted

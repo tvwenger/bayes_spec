@@ -160,7 +160,7 @@ def cluster_posterior(
             ]
 
         # Add solutions to the trace
-        coords = trace.coords
+        coords = trace.coords.copy()
         coords["chain"] = list(solution["chains"].keys())
         dims = {}
         posterior_clustered = {}

@@ -5,10 +5,12 @@ A Bayesian Spectral Line Modeling Framework for Astrophysics
 
 - [Installation](#installation)
 - [Usage](#usage)
-  - [Model Definition](#model-definition)
+  - [Data Format](#data-format)
+  - [Model Specification](#model-specification)
 - [Algorithms](#algorithms)
   - [Posterior Sampling: Variational Inference](#posterior-sampling-variational-inference)
   - [Posterior Sampling: MCMC](#posterior-sampling-mcmc)
+  - [Posterior Sampling: SMC](#posterior-sampling-smc)
   - [Posterior Clustering: Gaussian Mixture Models](#posterior-clustering-gaussian-mixture-models)
   - [Optimization](#optimization)
 - [Syntax \& Examples](#syntax--examples)
@@ -60,7 +62,7 @@ from bayes_spec import SpecData
 spec = SpecData(spectral_axis, brightness_data, noise, xlabel="Velocity", ylabel="Brightness Temperature")
 ```
 
-The spectral and brightness data are accessed via `spec.spectral` and `spec.brightness`, respectively.
+The spectral and brightness data are accessed via `spec.spectral` and `spec.brightness`, respectively. The noise is accessed via `spec.noise`.
 
 The data are passed to a `bayes_spec` model in a dictionary, which allows multiple spectra to be included in a single model. For example, if a model is constrained by both an emission-line spectrum and an absorption-line spectrum, then this dictionary might look something like this:
 
@@ -73,126 +75,11 @@ data = {"emission": emission, "absorption": absorption}
 
 The keys of this data dictionary (`"emission"` and `"absorption"` in this case) are important, you must remember them and use the same keys in your model definition. 
 
-Internally, `SpecData` normalizes the data by the noise. We can apply the normalization or un-normalization of data via `data['emission'].normalize_brightness` and `data['emission'].unnormalize_brightness` functions, respectively. This will be important for model specification.
+Internally, `SpecData` normalizes both the spectral axis and the data. Generally, this is only relevant for the polynomial baseline model, which is fit to the normalized data.
 
 ## Model Specification
 
-Model specification is made though a class that extends the `bayes_spec.BaseModel` base model class definition. This class must include two methods: `__init__`, which initializes the model, and `define`, which defines the model. Here is a skeleton of what this class definition must look like:
-
-```python
-import pymc as pm
-import pytensor.tensor as pt
-from bayes_spec import BaseModel
-
-# The model name "NewModel" can be anything, but it must extend BaseModel
-class NewModel(BaseModel):
-
-    # The class must include __init__ with this signature:
-    def __init__(self, *args, **kwargs):
-        
-        # This function must initialize the BaseModel:
-        super().__init__(*args, **kwargs)
-
-        # User-defined cloud-based parameters:
-        self.cloud_params += [
-            "parameter1",
-            "parameter2",
-        ]
-
-        # User-defined deterministic (derived) quantities
-        self.deterministics += [
-            "derived1",
-            "derived2",
-        ]
-
-        # User-selected features (parameters or deterministics) used for posterior clustering
-        self._cluster_features += [
-            "parameter2",
-            "derived1",
-        ]
-
-        # User defined string representation of parameters
-        self.var_name_map.update(
-            {
-                "parameter1": r"$\alpha$",
-                "parameter2": r"$\beta$",
-                "derived1": r"$A$",
-                "derived2": r"$B$",
-            }
-        )
-
-    # The class must include a method named "define", which can have
-    # arbitrary, user-defined arguments:
-    def define(self, prior_parameter1,):
-
-        # The define function must add baseline priors to the model
-        # The output of the `add_baseline_priors` function is a dictionary
-        # where the keys are the same keys as in the data dictionary and the
-        # values are the *normalized* baseline models, where the normalization
-        # is the same as that used on the data.
-        baseline_model_norm = super().add_baseline_priors()
-
-        # Here the user specifies the model
-        # This includes priors and the likelihood
-        with self.model:
-
-            # Define priors using standard pymc distributions and syntax.
-            # dims="cloud" for cloud-based parameters
-            parameter1 = pm.Normal("parameter1", mu=0, sigma=prior_parameter1, dims="cloud")
-            parameter2 = pm.Normal("parameter2", mu=0, sigma=1, dims="cloud")
-
-            # Derived parameters can be calculated using external functions,
-            # ideally written with pytensor
-            derived1 = pt.sum([parameter1, parameter2])
-            derived2 = my_external_function(parameter1, parameter2)
-
-            # The user must specify the relationship between the model parameters
-            # and the observed spectrum/spectra. For example, if `my_emission_function`
-            # predicts the emission spectrum and `my_absorption_function` predicts the
-            # absorption spectrum per cloud, then the observed spectra might be the
-            # sum of the outputs of these functions over all clouds
-            emission_spectrum = my_emission_function(
-                self.data["emission"].spectral[:, None],
-                parameter1,
-                derived1,
-            ).sum(axis=1)
-            absorption_spectrum = my_absorption_function(
-                self.data["absorption"].spectral[:, None],
-                parameter2,
-                derived2,
-            ).sum(axis=1)
-
-            # It is good practice to ensure that both the priors and the likelihood
-            # are normalized (i.e., mean ~ 0 and variance ~ 1). Thus, we normalize
-            # our predicted spectra by the noise and compare it to the similarly-normalized
-            # data.
-            emission_norm = self.data["emission"].normalize_brightness(emission)
-            absorption_norm = self.data["absorption"].normalize_brightness(absorption)
-
-            # We add on the normalized baseline model
-            pred_emission = emission_norm + baseline_model_norm["emission"]
-            pred_absorption = absorption_norm + baseline_model_norm["absorption"]
-
-            # With normalized data, we can use a unit-variance normal distribution likelihood.
-            # The normalized likelihood *must* be included for each spectrum in the data, and
-            # the names of these likelihood parameters *must* be like {name}_norm where {name}
-            # is the key of the spectrum in the data dictionary. Furthermore, "dims" must be
-            # equal to {name}
-            _ = pm.Normal(
-                "emission_norm",
-                mu=pred_emission,
-                sigma=1.0,
-                observed=self.data["emission"].brightness_norm,
-                dims="emission",
-            )
-            _ = pm.Normal(
-                "absorption_norm",
-                mu=pred_absorption,
-                sigma=1.0,
-                observed=self.data["absorption"].brightness_norm,
-                dims="absorption",
-            )
-```
+Model specification is made though a class that extends the `bayes_spec.BaseModel` base model class definition. This class must include three methods: `__init__`, which initializes the model, and `add_priors`, which adds the priors to the model, and `add_likelihood`, which adds the likelihood to the model. These priors and likelihood are specified following the usual `pymc` syntax. [See the definition of `GaussLine` for an example.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_line.py) Alternatively, the class can extend an existing `bayes_spec` model, which is convenient for similar models with, for example, added complexity. [See the definition of `GaussLineNoise`, which extends `GaussLine`.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_line_noise.py) 
 
 # Algorithms
 

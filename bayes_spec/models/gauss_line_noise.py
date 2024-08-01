@@ -24,16 +24,12 @@ Changelog:
 Trey Wenger - July 2024
 """
 
-from typing import Iterable
-
-import numpy as np
 import pymc as pm
 
-from bayes_spec import BaseModel
-from bayes_spec.utils import gaussian
+from bayes_spec.models import GaussLine
 
 
-class GaussLineNoise(BaseModel):
+class GaussLineNoise(GaussLine):
     """
     Definition of a Gaussian line profile model, with noise as an additional
     free parameter.
@@ -51,13 +47,6 @@ class GaussLineNoise(BaseModel):
         # Initialize BaseModel
         super().__init__(*args, **kwargs)
 
-        # Define (normalized) cloud free parameter names
-        self.cloud_params += [
-            "line_area_norm",
-            "fwhm_norm",
-            "velocity_norm",
-        ]
-
         # Define (normalized) hyper-parameter names
         self.hyper_params += [
             "rms_observation_norm",
@@ -65,141 +54,56 @@ class GaussLineNoise(BaseModel):
 
         # Define deterministic quantities (including un-normalized parameters)
         self.deterministics += [
-            "line_area",
-            "fwhm",
-            "velocity",
-            "amplitude",
             "rms_observation",
-        ]
-
-        # Select features used for posterior clustering
-        self._cluster_features += [
-            "velocity",
-            "line_area",
         ]
 
         # Define TeX representation of each parameter
         self.var_name_map.update(
             {
-                "line_area": r"$\int\!T_B\,dV$ (K km s$^{-1}$)",
-                "fwhm": r"$\Delta V$ (km s$^{-1}$)",
-                "velocity": r"$V_{\rm LSR}$ (km s$^{-1}$)",
-                "amplitude": r"$T_B$ (K)",
                 "rms_observation": r"rms (K)",
             }
         )
 
-    def define(
+    def add_priors(
         self,
-        prior_line_area: float = 100.0,
-        prior_fwhm: float = 25.0,
-        prior_velocity: Iterable[float] = [0.0, 25.0],
-        prior_baseline_coeff: float = 1.0,
         prior_rms: float = 1.0,
+        **kwargs,
     ):
         """
-        Model definition. The SpecData key must be "observation".
+        Add priors tot he model.
 
         Inputs:
-            prior_line_area :: scalar
-                Prior distribution on line area (K km s-1), where:
-                line_area ~ Gamma(alpha=2.0, beta=1.0/prior_line_area)
-            prior_fwhm :: scalar
-                Prior distribution on line area (K km s-1), where:
-                line_area ~ Gamma(alpha=2.0, beta=1.0/prior_line_area)
-                Mode of the k=2 gamma distribution Gaussian FWHM line width prior
-            prior_vlsr :: two-element array of scalars
-                Prior distribution on line centroid velocity (km s-1), where:
-                velocity ~ Normal(mu=prior_velocity[0], sigma=prior_velocity[1])
-            prior_baseline_coeff :: scalar
-                Prior distribution on normalized polynomial baseline coefficients, where:
-                coeff ~ Normal(mu=0, sigma=prior_baseline_coeffs)
             prior_rms :: scalar
                 Prior distribution on spectral rms (K), where:
                 rms ~ HalfNormal(sigma=prior_rms)
+            **kwargs :: see GaussLine.add_priors()
 
         Returns: Nothing
         """
-        # add polynomial baseline priors
-        super().add_baseline_priors(prior_baseline_coeff=prior_baseline_coeff)
+        # Add GaussLine priors
+        super().add_priors(**kwargs)
 
+        # Add additional priors
         with self.model:
-            # Line area per cloud
-            line_area_norm = pm.Gamma(
-                "line_area_norm", alpha=2.0, beta=1.0, dims="cloud"
-            )
-            line_area = pm.Deterministic(
-                "line_area", prior_line_area * line_area_norm, dims="cloud"
-            )
-
-            # FWHM line width per cloud
-            fwhm_norm = pm.Gamma(
-                "fwhm_norm",
-                alpha=2.0,
-                beta=1.0,
-                dims="cloud",
-            )
-            fwhm = pm.Deterministic("fwhm", prior_fwhm * fwhm_norm, dims="cloud")
-
-            # Centroid velocity per cloud
-            velocity_norm = pm.Normal(
-                "velocity_norm",
-                mu=0.0,
-                sigma=1.0,
-                dims="cloud",
-            )
-            velocity = pm.Deterministic(
-                "velocity",
-                prior_velocity[0] + prior_velocity[1] * velocity_norm,
-                dims="cloud",
-            )
-
-            # Deterministic amplitude per cloud
-            amplitude = pm.Deterministic(
-                "amplitude",
-                line_area / fwhm / np.sqrt(np.pi / (4.0 * np.log(2.0))),
-                dims="cloud",
-            )
-
-            # Predict spectrum
-            predicted = self.predict(amplitude, velocity, fwhm)
-
             # Spectral rms (K)
             rms_observation_norm = pm.HalfNormal("rms_observation_norm", sigma=1.0)
-            rms_observation = pm.Deterministic(
-                "rms_observation", rms_observation_norm * prior_rms
-            )
+            _ = pm.Deterministic("rms_observation", rms_observation_norm * prior_rms)
 
+    def add_likelihood(self):
+        """
+        Add the likelihood to the model. The SpecData key must be "observation".
+
+        Inputs: None
+        Returns: Nothing
+        """
+        # Predict emission
+        predicted = self.predict()
+
+        with self.model:
             # Evaluate likelihood
             _ = pm.Normal(
                 "observation",
                 mu=predicted,
-                sigma=rms_observation,
+                sigma=self.model["rms_observation"],
                 observed=self.data["observation"].brightness,
             )
-
-    def predict(self, amplitude, velocity, fwhm):
-        """
-        Model definition. The SpecData key must be "observation".
-
-        Inputs:
-            amplitude :: 1-D array of scalars
-                Gaussian ampltiudes (K)
-            velocity :: 1-D array of scalars
-                Gaussian centroid velocities (km s-1)
-            fwhm :: 1-D array of scalars
-                Gaussian FWHM line widths (km/s)
-
-        Returns:
-            predicted :: 1-D array of scalars
-                Predicted spectrum (un-normalized)
-        """
-        # Evaluate line profile model per cloud, sum over clouds
-        predicted_line = gaussian(
-            self.data["observation"].spectral[:, None], amplitude, velocity, fwhm
-        ).sum(axis=1)
-
-        # Add baseline model
-        baseline_models = self.predict_baseline()
-        predicted = predicted_line + baseline_models["observation"]
-        return predicted

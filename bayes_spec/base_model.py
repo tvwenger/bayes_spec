@@ -110,7 +110,11 @@ class BaseModel(ABC):
         self.reset_results()
 
     @abstractmethod
-    def define(self, *args, **kwargs):
+    def add_priors(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def add_likelihood(self, *args, **kwargs):
         pass
 
     @property
@@ -154,6 +158,10 @@ class BaseModel(ABC):
         """
         Validate the model by checking the log probability at the initial point.
         """
+        # check that likelihood has been added
+        if len(self.model.observed_RVs) == 0:
+            raise ValueError("No observed variables found! Did you add_likelihood()?")
+
         # check that model can be evaluated
         if not np.isfinite(self.model.logp().eval(self.model.initial_point())):
             raise ValueError(
@@ -374,6 +382,9 @@ class BaseModel(ABC):
             predictive :: InferenceData
                 Object containing prior and prior predictive samples
         """
+        # validate
+        self._validate()
+
         with self.model:
             trace = pm.sample_prior_predictive(samples=samples, random_seed=self.seed)
 
@@ -405,6 +416,12 @@ class BaseModel(ABC):
             predictive :: InferenceData
                 Object containing posterior and posterior predictive samples
         """
+        # validate
+        self._validate()
+
+        if self.trace is None:
+            raise ValueError("Model has no posterior samples. Try fit() or sample().")
+
         with self.model:
             if solution is None:
                 posterior = self.trace.posterior.sel(
