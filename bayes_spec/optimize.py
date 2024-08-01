@@ -78,24 +78,36 @@ class Optimize:
         self.data = data
 
         # Initialize models
-        self.models = {}
+        self.models: dict[int, Type[BaseModel]] = {}
         for n_cloud in self.n_clouds:
             self.models[n_cloud] = model_type(
                 self.data, n_cloud, baseline_degree, seed=seed, verbose=self.verbose
             )
         self.best_model = None
 
-    def define(self, *args, **kwargs):
+    def add_priors(self, *args, **kwargs):
         """
-        Define the models.
+        Add priors to the models.
 
         Inputs:
-            See model_type.define
+            See model_type.add_priors
 
         Returns: Nothing
         """
         for n_cloud in self.n_clouds:
-            self.models[n_cloud].define(*args, **kwargs)
+            self.models[n_cloud].add_priors(*args, **kwargs)
+
+    def add_likelihood(self, *args, **kwargs):
+        """
+        Add likelihood to the models.
+
+        Inputs:
+            See model_type.add_likelihood
+
+        Returns: Nothing
+        """
+        for n_cloud in self.n_clouds:
+            self.models[n_cloud].add_likelihood(*args, **kwargs)
 
     def fit_all(self, **kwargs):
         """
