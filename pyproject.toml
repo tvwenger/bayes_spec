@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools", "versioneer[toml]==0.29"]
+build-backend = "setuptools.build_meta"
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "bayes_spec/_version.py"
+versionfile_build = "bayes_spec/_version.py"
+tag_prefix = "v"

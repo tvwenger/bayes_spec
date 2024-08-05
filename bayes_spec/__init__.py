@@ -1,4 +1,3 @@
-__version__ = "1.3.1"
 __all__ = [
     "SpecData",
     "BaseModel",
@@ -8,3 +7,6 @@ __all__ = [
 from bayes_spec.spec_data import SpecData
 from bayes_spec.base_model import BaseModel
 from bayes_spec.optimize import Optimize
+
+from . import _version
+__version__ = _version.get_versions()['version']
