@@ -6,8 +6,13 @@ dependencies:
   - numpy
   - pymc>=5
   - pytensor
+  - nutpie
+  - numba
   - arviz
   - matplotlib
   - scipy
   - scikit-learn
   - graphviz
+  - jax==0.4.28
+  - blackjax
+  - numpyro

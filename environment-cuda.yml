@@ -1,0 +1,21 @@
+name: bayes_spec
+channels:
+  - conda-forge
+  - nvidia
+  - defaults
+dependencies:
+  - numpy
+  - pymc>=5
+  - pytensor
+  - nutpie
+  - numba
+  - arviz
+  - matplotlib
+  - scipy
+  - scikit-learn
+  - graphviz
+  - nvidia::cuda-toolkit
+  - jaxlib=*=*cuda*
+  - jax==0.4.28
+  - blackjax
+  - numpyro

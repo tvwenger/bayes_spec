@@ -1,6 +1,8 @@
 numpy
 pymc>=5
 pytensor
+nutpie
+numba
 arviz
 matplotlib
 scipy

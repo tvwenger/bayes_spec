@@ -22,6 +22,8 @@ A Bayesian Spectral Line Modeling Framework for Astrophysics
 Preferred: install in a `conda` virtual environment:
 ```
 conda env create -f environment.yml
+# or, if you would like to use CUDA (nvidia GPU) samplers:
+# conda env create -f environment-cuda.yml
 conda activate bayes_spec
 pip install .
 ```
@@ -34,6 +36,8 @@ python setup.py install
 If you wish to contribute to `bayes_spec`, then you may wish to install additional dependencies and install `bayes_spec` as an "editable" package:
 ```
 conda env create -f environment-dev.yml
+# or, if you would like to use CUDA (nvidia GPU) samplers:
+# conda env create -f environment-cuda-dev.yml
 conda activate bayes_spec-dev
 pip install -e .
 ```
@@ -89,11 +93,11 @@ Model specification is made though a class that extends the `bayes_spec.BaseMode
 
 ## Posterior Sampling: MCMC
 
-`bayes_spec` can also use MCMC to sample the posterior distribution. MCMC sampling tends to be much slower but also more accurate. Draw posterior samples using MCMC via `model.sample()`.
+`bayes_spec` can also use MCMC to sample the posterior distribution. MCMC sampling tends to be much slower but also more accurate. Draw posterior samples using MCMC via `model.sample()`. Since `bayes_spec` uses `pymc` for sampling, several `pymc` samplers are available, including GPU samplers (see ["other samplers" example notebook](https://github.com/tvwenger/bayes_spec/tree/main/examples)).
 
 ## Posterior Sampling: SMC
 
-Finally, `bayes_spec` implements Sequential Monte Carlo (SMC) sampling via `model.sample_smc()`. SMC can significantly improve performance for degenerate models with multi-modal posterior distributions, although it struggles with high dimensional models.
+Finally, `bayes_spec` implements Sequential Monte Carlo (SMC) sampling via `model.sample_smc()`. SMC can significantly improve performance for degenerate models with multi-modal posterior distributions, although it struggles with high dimensional models and models that suffer from a strong labeling degeneracy (see ["other samplers" example notebook]((https://github.com/tvwenger/bayes_spec/tree/main/examples))).
 
 ## Posterior Clustering: Gaussian Mixture Models
 

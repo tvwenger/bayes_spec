@@ -45,8 +45,36 @@
 <path fill="none" stroke="black" d="M241.48,-229C341.95,-229 505.78,-229 505.78,-229 505.78,-229 505.78,-170.11 505.78,-170.11"/>
 <polygon fill="black" stroke="black" points="509.28,-170.11 505.78,-160.11 502.28,-170.11 509.28,-170.11"/>
 </g>
-<!-- velocity -->
+<!-- line_area -->
 <g id="node2" class="node">
+<title>line_area</title>
+<polygon fill="none" stroke="black" points="493.75,-477.76 380.25,-477.76 380.25,-386.01 493.75,-386.01 493.75,-477.76"/>
+<text text-anchor="middle" x="437" y="-460.46" font-family="Times,serif" font-size="14.00">line_area</text>
+<text text-anchor="middle" x="437" y="-427.21" font-family="Times,serif" font-size="14.00">~</text>
+<text text-anchor="middle" x="437" y="-393.96" font-family="Times,serif" font-size="14.00">Deterministic</text>
+</g>
+<!-- amplitude -->
+<g id="node3" class="node">
+<title>amplitude</title>
+<polygon fill="none" stroke="black" points="562.75,-331.01 449.25,-331.01 449.25,-239.26 562.75,-239.26 562.75,-331.01"/>
+<text text-anchor="middle" x="506" y="-313.71" font-family="Times,serif" font-size="14.00">amplitude</text>
+<text text-anchor="middle" x="506" y="-280.46" font-family="Times,serif" font-size="14.00">~</text>
+<text text-anchor="middle" x="506" y="-247.21" font-family="Times,serif" font-size="14.00">Deterministic</text>
+</g>
+<!-- line_area&#45;&gt;amplitude -->
+<g id="edge2" class="edge">
+<title>line_area&#45;&gt;amplitude</title>
+<path fill="none" stroke="black" d="M471.5,-385.85C471.5,-385.85 471.5,-343.02 471.5,-343.02"/>
+<polygon fill="black" stroke="black" points="475,-343.02 471.5,-333.02 468,-343.02 475,-343.02"/>
+</g>
+<!-- amplitude&#45;&gt;observation -->
+<g id="edge3" class="edge">
+<title>amplitude&#45;&gt;observation</title>
+<path fill="none" stroke="black" d="M534.26,-239.03C534.26,-239.03 534.26,-181.46 534.26,-181.46"/>
+<polygon fill="black" stroke="black" points="537.76,-181.46 534.26,-171.46 530.76,-181.46 537.76,-181.46"/>
+</g>
+<!-- velocity -->
+<g id="node4" class="node">
 <title>velocity</title>
 <polygon fill="none" stroke="black" points="810.75,-477.76 697.25,-477.76 697.25,-386.01 810.75,-386.01 810.75,-477.76"/>
 <text text-anchor="middle" x="754" y="-460.46" font-family="Times,serif" font-size="14.00">velocity</text>
@@ -54,60 +82,10 @@
 <text text-anchor="middle" x="754" y="-393.96" font-family="Times,serif" font-size="14.00">Deterministic</text>
 </g>
 <!-- velocity&#45;&gt;observation -->
-<g id="edge2" class="edge">
+<g id="edge4" class="edge">
 <title>velocity&#45;&gt;observation</title>
 <path fill="none" stroke="black" d="M754,-385.54C754,-295.57 754,-106 754,-106 754,-106 630.7,-106 630.7,-106"/>
 <polygon fill="black" stroke="black" points="630.7,-102.5 620.7,-106 630.7,-109.5 630.7,-102.5"/>
-</g>
-<!-- line_area_norm -->
-<g id="node3" class="node">
-<title>line_area_norm</title>
-<ellipse fill="none" stroke="black" cx="426" cy="-578.64" rx="88.21" ry="64.88"/>
-<text text-anchor="middle" x="426" y="-607.21" font-family="Times,serif" font-size="14.00">line_area_norm</text>
-<text text-anchor="middle" x="426" y="-573.96" font-family="Times,serif" font-size="14.00">~</text>
-<text text-anchor="middle" x="426" y="-540.71" font-family="Times,serif" font-size="14.00">Gamma</text>
-</g>
-<!-- line_area -->
-<g id="node8" class="node">
-<title>line_area</title>
-<polygon fill="none" stroke="black" points="493.75,-477.76 380.25,-477.76 380.25,-386.01 493.75,-386.01 493.75,-477.76"/>
-<text text-anchor="middle" x="437" y="-460.46" font-family="Times,serif" font-size="14.00">line_area</text>
-<text text-anchor="middle" x="437" y="-427.21" font-family="Times,serif" font-size="14.00">~</text>
-<text text-anchor="middle" x="437" y="-393.96" font-family="Times,serif" font-size="14.00">Deterministic</text>
-</g>
-<!-- line_area_norm&#45;&gt;line_area -->
-<g id="edge3" class="edge">
-<title>line_area_norm&#45;&gt;line_area</title>
-<path fill="none" stroke="black" d="M437,-513.84C437,-513.84 437,-489.36 437,-489.36"/>
-<polygon fill="black" stroke="black" points="440.5,-489.36 437,-479.36 433.5,-489.36 440.5,-489.36"/>
-</g>
-<!-- fwhm -->
-<g id="node4" class="node">
-<title>fwhm</title>
-<polygon fill="none" stroke="black" points="647.75,-477.76 534.25,-477.76 534.25,-386.01 647.75,-386.01 647.75,-477.76"/>
-<text text-anchor="middle" x="591" y="-460.46" font-family="Times,serif" font-size="14.00">fwhm</text>
-<text text-anchor="middle" x="591" y="-427.21" font-family="Times,serif" font-size="14.00">~</text>
-<text text-anchor="middle" x="591" y="-393.96" font-family="Times,serif" font-size="14.00">Deterministic</text>
-</g>
-<!-- amplitude -->
-<g id="node7" class="node">
-<title>amplitude</title>
-<polygon fill="none" stroke="black" points="562.75,-331.01 449.25,-331.01 449.25,-239.26 562.75,-239.26 562.75,-331.01"/>
-<text text-anchor="middle" x="506" y="-313.71" font-family="Times,serif" font-size="14.00">amplitude</text>
-<text text-anchor="middle" x="506" y="-280.46" font-family="Times,serif" font-size="14.00">~</text>
-<text text-anchor="middle" x="506" y="-247.21" font-family="Times,serif" font-size="14.00">Deterministic</text>
-</g>
-<!-- fwhm&#45;&gt;amplitude -->
-<g id="edge4" class="edge">
-<title>fwhm&#45;&gt;amplitude</title>
-<path fill="none" stroke="black" d="M548.5,-385.85C548.5,-385.85 548.5,-343.02 548.5,-343.02"/>
-<polygon fill="black" stroke="black" points="552,-343.02 548.5,-333.02 545,-343.02 552,-343.02"/>
-</g>
-<!-- fwhm&#45;&gt;observation -->
-<g id="edge5" class="edge">
-<title>fwhm&#45;&gt;observation</title>
-<path fill="none" stroke="black" d="M590.73,-385.56C590.73,-385.56 590.73,-169.73 590.73,-169.73"/>
-<polygon fill="black" stroke="black" points="594.23,-169.73 590.73,-159.73 587.23,-169.73 594.23,-169.73"/>
 </g>
 <!-- velocity_norm -->
 <g id="node5" class="node">
@@ -118,13 +96,47 @@
 <text text-anchor="middle" x="774" y="-540.71" font-family="Times,serif" font-size="14.00">Normal</text>
 </g>
 <!-- velocity_norm&#45;&gt;velocity -->
-<g id="edge6" class="edge">
+<g id="edge5" class="edge">
 <title>velocity_norm&#45;&gt;velocity</title>
 <path fill="none" stroke="black" d="M754,-515.55C754,-515.55 754,-489.59 754,-489.59"/>
 <polygon fill="black" stroke="black" points="757.5,-489.59 754,-479.59 750.5,-489.59 757.5,-489.59"/>
 </g>
-<!-- fwhm_norm -->
+<!-- line_area_norm -->
 <g id="node6" class="node">
+<title>line_area_norm</title>
+<ellipse fill="none" stroke="black" cx="426" cy="-578.64" rx="88.21" ry="64.88"/>
+<text text-anchor="middle" x="426" y="-607.21" font-family="Times,serif" font-size="14.00">line_area_norm</text>
+<text text-anchor="middle" x="426" y="-573.96" font-family="Times,serif" font-size="14.00">~</text>
+<text text-anchor="middle" x="426" y="-540.71" font-family="Times,serif" font-size="14.00">Gamma</text>
+</g>
+<!-- line_area_norm&#45;&gt;line_area -->
+<g id="edge6" class="edge">
+<title>line_area_norm&#45;&gt;line_area</title>
+<path fill="none" stroke="black" d="M437,-513.84C437,-513.84 437,-489.36 437,-489.36"/>
+<polygon fill="black" stroke="black" points="440.5,-489.36 437,-479.36 433.5,-489.36 440.5,-489.36"/>
+</g>
+<!-- fwhm -->
+<g id="node7" class="node">
+<title>fwhm</title>
+<polygon fill="none" stroke="black" points="647.75,-477.76 534.25,-477.76 534.25,-386.01 647.75,-386.01 647.75,-477.76"/>
+<text text-anchor="middle" x="591" y="-460.46" font-family="Times,serif" font-size="14.00">fwhm</text>
+<text text-anchor="middle" x="591" y="-427.21" font-family="Times,serif" font-size="14.00">~</text>
+<text text-anchor="middle" x="591" y="-393.96" font-family="Times,serif" font-size="14.00">Deterministic</text>
+</g>
+<!-- fwhm&#45;&gt;amplitude -->
+<g id="edge7" class="edge">
+<title>fwhm&#45;&gt;amplitude</title>
+<path fill="none" stroke="black" d="M548.5,-385.85C548.5,-385.85 548.5,-343.02 548.5,-343.02"/>
+<polygon fill="black" stroke="black" points="552,-343.02 548.5,-333.02 545,-343.02 552,-343.02"/>
+</g>
+<!-- fwhm&#45;&gt;observation -->
+<g id="edge8" class="edge">
+<title>fwhm&#45;&gt;observation</title>
+<path fill="none" stroke="black" d="M590.73,-385.56C590.73,-385.56 590.73,-169.73 590.73,-169.73"/>
+<polygon fill="black" stroke="black" points="594.23,-169.73 590.73,-159.73 587.23,-169.73 594.23,-169.73"/>
+</g>
+<!-- fwhm_norm -->
+<g id="node8" class="node">
 <title>fwhm_norm</title>
 <ellipse fill="none" stroke="black" cx="603" cy="-578.64" rx="70.71" ry="64.88"/>
 <text text-anchor="middle" x="603" y="-607.21" font-family="Times,serif" font-size="14.00">fwhm_norm</text>
@@ -132,22 +144,10 @@
 <text text-anchor="middle" x="603" y="-540.71" font-family="Times,serif" font-size="14.00">Gamma</text>
 </g>
 <!-- fwhm_norm&#45;&gt;fwhm -->
-<g id="edge7" class="edge">
+<g id="edge9" class="edge">
 <title>fwhm_norm&#45;&gt;fwhm</title>
 <path fill="none" stroke="black" d="M591,-514.27C591,-514.27 591,-489.64 591,-489.64"/>
 <polygon fill="black" stroke="black" points="594.5,-489.64 591,-479.64 587.5,-489.64 594.5,-489.64"/>
-</g>
-<!-- amplitude&#45;&gt;observation -->
-<g id="edge8" class="edge">
-<title>amplitude&#45;&gt;observation</title>
-<path fill="none" stroke="black" d="M534.26,-239.03C534.26,-239.03 534.26,-181.46 534.26,-181.46"/>
-<polygon fill="black" stroke="black" points="537.76,-181.46 534.26,-171.46 530.76,-181.46 537.76,-181.46"/>
-</g>
-<!-- line_area&#45;&gt;amplitude -->
-<g id="edge9" class="edge">
-<title>line_area&#45;&gt;amplitude</title>
-<path fill="none" stroke="black" d="M471.5,-385.85C471.5,-385.85 471.5,-343.02 471.5,-343.02"/>
-<polygon fill="black" stroke="black" points="475,-343.02 471.5,-333.02 468,-343.02 475,-343.02"/>
 </g>
 </g>
 </svg>

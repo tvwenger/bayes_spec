@@ -3,14 +3,22 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - ipython
   - numpy
   - pymc>=5
   - pytensor
+  - nutpie
+  - numba
   - arviz
   - matplotlib
   - scipy
   - scikit-learn
   - graphviz
+  - jax==0.4.28
+  - blackjax
+  - numpyro
   - jupyter_contrib_nbextensions
   - jupyter_nbextensions_configurator
   - ipywidgets
+  - black
+  - flake8
