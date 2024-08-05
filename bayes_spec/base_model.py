@@ -658,18 +658,18 @@ class BaseModel(ABC):
                 print(f"GMM found {len(solutions)} unique solutions")
                 for solution_idx, solution in enumerate(solutions):
                     print(
-                        f"Solution {solution_idx}: chains {list(solution['chains'].keys())}"
+                        f"Solution {solution_idx}: chains {list(solution['label_orders'].keys())}"
                     )
 
         # labeling degeneracy check
         for solution_idx, solution in enumerate(solutions):
-            chain_order = np.array(
-                [chain["label_order"] for chain in solution["chains"].values()]
+            label_orders = np.array(
+                [label_order for label_order in solution["label_orders"].values()]
             )
-            if self.verbose and not np.all(chain_order == solution["label_order"]):
-                print(f"Chain label order mismatch in solution {solution_idx}")
-                for chain, order in solution["chains"].items():
-                    print(f"Chain {chain} order: {order['label_order']}")
+            if self.verbose and not np.all(label_orders == label_orders[0]):
+                print(f"Label order mismatch in solution {solution_idx}")
+                for chain, label_order in solution["label_orders"].items():
+                    print(f"Chain {chain} order: {label_order}")
                 print(f"Adopting (first) most common order: {solution['label_order']}")
 
             # Add solution to the trace

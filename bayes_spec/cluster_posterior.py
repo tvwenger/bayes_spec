@@ -113,24 +113,24 @@ def cluster_posterior(
             # cluster, then this is NOT a unique solution
             if np.all(np.any(matched, axis=0)):
                 # adopt GMM labeling from matched solution
-                solution_labels = mode(
-                    solution["gmm"].predict(features).reshape(-1, n_clusters),
-                    axis=0,
-                ).mode
+                labels = solution["gmm"].predict(features).reshape(-1, n_clusters)
+                label_order = mode(labels, axis=0).mode
 
                 # ensure all labels present
-                if len(np.unique(solution_labels)) == len(solution_labels):
-                    solution["chains"][chain] = {"label_order": solution_labels}
+                if len(np.unique(label_order)) == len(label_order):
+                    solution["label_orders"][chain] = label_order
                     break
 
         # Otherwise, this is a unique solution
         else:
-            labels = mode(gmm.predict(features).reshape(-1, n_clusters), axis=0).mode
-            # ensure all labels present
-            if len(np.unique(labels)) == len(labels):
+            labels = gmm.predict(features).reshape(-1, n_clusters)
+            label_order = mode(labels, axis=0).mode
+
+            # ensure all labels present+
+            if len(np.unique(label_order)) == len(label_order):
                 solution = {
                     "gmm": gmm,
-                    "chains": {chain: {"label_order": labels}},
+                    "label_orders": {chain: label_order},
                 }
                 solutions.append(solution)
 
@@ -139,29 +139,30 @@ def cluster_posterior(
     # now determine which order of GMM clusters is preferred
     good_solutions = []
     for solution in solutions:
-        chain_order = np.array(
-            [chain["label_order"] for chain in solution["chains"].values()]
+        label_orders = np.array(
+            [label_order for label_order in solution["label_orders"].values()]
         )
         # no chains have unique feature labels, abort!
-        if len(chain_order) == 0:
+        if len(label_orders) == 0:
             continue
-        unique_chain_orders, counts = np.unique(
-            chain_order,
+        unique_label_orders, counts = np.unique(
+            label_orders,
             axis=0,
             return_counts=True,
         )
-        solution["label_order"] = unique_chain_orders[np.argmax(counts)]
+        solution["label_order"] = unique_label_orders[np.argmax(counts)]
 
         # Determine the order of clouds needed to match the adopted label order.
-        for chain in solution["chains"].values():
-            xorder = np.argsort(chain["label_order"])
-            chain["cloud_order"] = xorder[
-                np.searchsorted(chain["label_order"][xorder], solution["label_order"])
+        solution["cloud_orders"] = {}
+        for chain, label_order in solution["label_orders"].items():
+            xorder = np.argsort(label_order)
+            solution["cloud_orders"][chain] = xorder[
+                np.searchsorted(label_order[xorder], solution["label_order"])
             ]
 
         # Add solutions to the trace
         coords = trace.coords.copy()
-        coords["chain"] = list(solution["chains"].keys())
+        coords["chain"] = list(solution["cloud_orders"].keys())
         dims = {}
         posterior_clustered = {}
         for param, samples in trace.data_vars.items():
@@ -169,14 +170,19 @@ def cluster_posterior(
                 # break labeling degeneracy
                 posterior_clustered[param] = xarray.concat(
                     [
-                        samples.sel(chain=chain, cloud=order["cloud_order"])
-                        for chain, order in solution["chains"].items()
+                        samples.sel(chain=chain, cloud=cloud_order).assign_coords(
+                            cloud=range(n_clusters)
+                        )
+                        for chain, cloud_order in solution["cloud_orders"].items()
                     ],
                     dim="chain",
                 )
             else:
                 posterior_clustered[param] = xarray.concat(
-                    [samples.sel(chain=chain) for chain in solution["chains"].keys()],
+                    [
+                        samples.sel(chain=chain)
+                        for chain in solution["cloud_orders"].keys()
+                    ],
                     dim="chain",
                 )
             dims[param] = list(samples.dims)
