@@ -43,10 +43,11 @@ class Optimize:
         self,
         model_type: Type[BaseModel],
         data: dict[str, SpecData],
-        max_n_clouds: int,
+        max_n_clouds: int = 5,
         baseline_degree: int = 0,
         seed: int = 1234,
         verbose: bool = False,
+        **kwargs,
     ):
         """
         Initialize a new Optimize instance.
@@ -65,6 +66,7 @@ class Optimize:
                 Random seed
             verbose :: boolean
                 Print extra info
+            **kwargs :: additional arguments passed to model
 
         Returns: optimize_model
             optimize_model :: Optimize
@@ -81,7 +83,12 @@ class Optimize:
         self.models: dict[int, Type[BaseModel]] = {}
         for n_cloud in self.n_clouds:
             self.models[n_cloud] = model_type(
-                self.data, n_cloud, baseline_degree, seed=seed, verbose=self.verbose
+                self.data,
+                n_cloud,
+                baseline_degree,
+                seed=seed,
+                verbose=self.verbose,
+                **kwargs,
             )
         self.best_model = None
 
