@@ -4,6 +4,7 @@ channels:
   - nvidia
   - defaults
 dependencies:
+  - versioneer
   - numpy
   - pymc>=5
   - pytensor

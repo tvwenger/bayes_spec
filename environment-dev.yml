@@ -4,6 +4,10 @@ channels:
   - defaults
 dependencies:
   - ipython
+  - jupyter_contrib_nbextensions
+  - jupyter_nbextensions_configurator
+  - ipywidgets
+  - versioneer
   - numpy
   - pymc>=5
   - pytensor
@@ -17,8 +21,5 @@ dependencies:
   - jax==0.4.28
   - blackjax
   - numpyro
-  - jupyter_contrib_nbextensions
-  - jupyter_nbextensions_configurator
-  - ipywidgets
   - black
   - flake8

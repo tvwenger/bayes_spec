@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - versioneer
   - numpy
   - pymc>=5
   - pytensor
