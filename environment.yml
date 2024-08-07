@@ -1,8 +1,12 @@
-name: bayes_spec
+name: bayes_spec-dev
 channels:
   - conda-forge
   - defaults
 dependencies:
+  - ipython
+  - jupyter_contrib_nbextensions
+  - jupyter_nbextensions_configurator
+  - ipywidgets
   - versioneer
   - numpy
   - pymc>=5
@@ -17,3 +21,5 @@ dependencies:
   - jax==0.4.28
   - blackjax
   - numpyro
+  - black
+  - flake8

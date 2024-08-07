@@ -4,6 +4,8 @@ A Bayesian Spectral Line Modeling Framework for Astrophysics
 `bayes_spec` is a framework for user-defined, cloud-based models of astrophysical systems (e.g., the interstellar medium) that enables spectral line simulation and statistical inference. Built in the [`pymc` probabilistic programming library](https://www.pymc.io/welcome.html), `bayes_spec` uses Monte Carlo Markov Chain techniques to fit user-defined models to data. The user-defined models can be a simple line profile (e.g., a Gaussian profile) or a complicated physical model. The models are "cloud-based", meaning there can be multiple "clouds" or "components" each with a unique set of the model parameters. `bayes_spec` includes algorithms to estimate the optimal number of components in a given dataset.
 
 - [Installation](#installation)
+  - [Basic Installation](#basic-installation)
+  - [Development Installation](#development-installation)
 - [Usage](#usage)
   - [Data Format](#data-format)
   - [Model Specification](#model-specification)
@@ -19,22 +21,24 @@ A Bayesian Spectral Line Modeling Framework for Astrophysics
 
 
 # Installation
-Download and unpack the [latest release](https://github.com/tvwenger/bayes_spec/releases/latest), or [fork the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) and contribute to the development of `bayes_spec`!
+
+## Basic Installation
+
+Install with pip:
+```
+pip install bayes_spec
+```
+
+## Development Installation
+
+Alternatively, download and unpack the [latest release](https://github.com/tvwenger/bayes_spec/releases/latest), or [fork the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) and contribute to the development of `bayes_spec`!
 
 Install in a `conda` virtual environment:
 ```
+cd /path/to/bayes_spec
 conda env create -f environment.yml
 # or, if you would like to use CUDA (nvidia GPU) samplers:
 # conda env create -f environment-cuda.yml
-conda activate bayes_spec
-pip install .
-```
-
-If you wish to contribute to `bayes_spec`, then you may wish to install additional dependencies and install `bayes_spec` as an "editable" package:
-```
-conda env create -f environment-dev.yml
-# or, if you would like to use CUDA (nvidia GPU) samplers:
-# conda env create -f environment-cuda-dev.yml
 conda activate bayes_spec-dev
 pip install -e .
 ```
