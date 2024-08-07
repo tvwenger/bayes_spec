@@ -8,3 +8,25 @@ style = "pep440"
 versionfile_source = "bayes_spec/_version.py"
 versionfile_build = "bayes_spec/_version.py"
 tag_prefix = "v"
+
+[project]
+name = "bayes_spec"
+description = "A Bayesian Spectral Line Modeling Framework for Astrophysics"
+authors = [
+  { name="Trey Wenger", email="tvwenger@gmail.com" },
+]
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/tvwenger/bayes_spec"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
