@@ -18,9 +18,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Changelog:
-Trey Wenger - July 2024
 """
 
 import numpy as np
@@ -32,27 +29,27 @@ class SpecData:
     """
 
     def __init__(
-        self, spectral, brightness, noise, xlabel="Spectral", ylabel="Brightness"
+        self,
+        spectral: list[float],
+        brightness: list[float],
+        noise: float | list[float],
+        xlabel: str = "Spectral",
+        ylabel: str = "Brightness",
     ):
-        """
-        Initialize a new data structure
+        """Initialize a new `SpecData` instance.
 
-        Inputs:
-            spectral :: 1-D array of scalars
-                Spectral axis definition (e.g., velocity, frequency)
-            brightness :: 1-D array of scalars
-                Spectral brightness data (e.g., brightness temperature, flux density)
-            noise :: scalar or 1-D array of scalars
-                Spectral brightness noise (same units as brightness)
-                If a scalar, the noise is assumed constant across the spectrum
-            xlabel :: string
-                Label for spectral axis
-            ylabel :: string
-                Label for brightness axis
-
-        Returns:
-            data :: SpecData
-                New SpecData instance
+        :param spectral: Spectaral axis
+        :type spectral: list[float]
+        :param brightness: Brightness data
+        :type brightness: list[float]
+        :param noise: Noise data. If a scalar, then the noise is assumed constant across the spectrum.
+        :type noise: float | list[float]
+        :param xlabel: Label for spectral axis, defaults to "Spectral"
+        :type xlabel: str, optional
+        :param ylabel: Label for brightness axis, defaults to "Brightness"
+        :type ylabel: str, optional
+        :raises ValueError: Size mis-match between :param:`spectral` and :param:`brightness`
+        :raises ValueError: :param:`noise` is not a scalar and there is a size mis-match between :param:`brightness` and :param:`noise`
         """
         if len(spectral) != len(brightness):
             raise ValueError("size mismatch between brightness and spectral")
@@ -78,92 +75,70 @@ class SpecData:
         self._brightness_scale = np.std(self.brightness)
         self.brightness_norm = self.normalize_brightness(brightness)
 
-    def _normalize(self, x, offset, scale):
-        """
-        Normalize some data.
+    def _normalize(self, x: float, offset: float, scale: float) -> float:
+        """Normalize some data
 
-        Inputs:
-            x :: 1-D array of scalars
-                Data to normalize
-            offset, scale :: scalars
-                Normalization parameters
-
-        Returns:
-            norm_x :: 1-D array of scalars
-                Normalized data
+        :param x: data to normalize
+        :type x: float
+        :param offset: Normalization offset
+        :type offset: float
+        :param scale: Normalization scale
+        :type scale: float
+        :return: Normalized data
+        :rtype: float
         """
         return (x - offset) / scale
 
-    def _unnormalize(self, norm_x, offset, scale):
-        """
-        Un-normalize some data.
+    def _unnormalize(self, norm_x: float, offset: float, scale: float) -> float:
+        """Un-normalize some data
 
-        Inputs:
-            norm_x :: 1-D array of scalars
-                Data to un-normalize
-            offset, scale :: scalars
-                Normalization parameters
-
-        Returns:
-            x :: 1-D array of scalars
-                Un-normalized data
+        :param norm_x: Normalized data
+        :type norm_x: float
+        :param offset: Normalization offset
+        :type offset: float
+        :param scale: Normalization scale
+        :type scale: float
+        :return: Un-normalized data
+        :rtype: float
         """
         return norm_x * scale + offset
 
-    def normalize_spectral(self, x):
-        """
-        Normalize spectral axis data.
+    def normalize_spectral(self, x: float) -> float:
+        """Normalize spectral data
 
-        Inputs:
-            x :: 1-D array of scalars
-                Spectral axis data
-
-        Returns:
-            norm_x :: 1-D array of scalars
-                Normalized spectral axis data
+        :param x: Spectral data to normalize
+        :type x: float
+        :return: Normalized spectral data
+        :rtype: float
         """
         return self._normalize(x, self._spectral_offset, self._spectral_scale)
 
-    def unnormalize_spectral(self, norm_x):
-        """
-        Un-normalize spectral axis data.
+    def unnormalize_spectral(self, norm_x: float) -> float:
+        """Un-normalize spectral data
 
-        Inputs:
-            norm_x :: 1-D array of scalars
-                Normalized spectral axis data
-
-        Returns:
-            x :: 1-D array of scalars
-                Un-normalized spectral axis data
+        :param norm_x: Normalized spectral data
+        :type norm_x: float
+        :return: Un-normalized spectral data
+        :rtype: float
         """
         return self._unnormalize(norm_x, self._spectral_offset, self._spectral_scale)
 
-    def normalize_brightness(self, x):
-        """
-        Normalize brightness axis data.
+    def normalize_brightness(self, x: float) -> float:
+        """Normalize brightness data
 
-        Inputs:
-            x :: 1-D array of scalars
-                brightness axis data
-
-        Returns:
-            norm_x :: 1-D array of scalars
-                Normalized brightness axis data
+        :param x: Brightness data to normalize
+        :type x: float
+        :return: Normalized brightness data
+        :rtype: float
         """
         return self._normalize(x, self._brightness_offset, self._brightness_scale)
 
-    def unnormalize_brightness(self, norm_x):
-        """
-        Un-normalize brightness axis data.
+    def unnormalize_brightness(self, norm_x: float) -> float:
+        """Un-normalize brighrtness data
 
-        Inputs:
-            norm_x :: 1-D array of scalars
-                Normalized brightness axis data
-
-        Returns:
-            x :: 1-D array of scalars
-                Un-normalized brightness axis data
+        :param norm_x: Normalized brightness data
+        :type norm_x: float
+        :return: Un-normalized brightness data
+        :rtype: float
         """
-        return self._unnormalize(
-            norm_x, self._brightness_offset, self._brightness_scale
-        )
+        return self._unnormalize(norm_x, self._brightness_offset, self._brightness_scale)

@@ -9,7 +9,10 @@ dependencies:
   - jupyter_nbextensions_configurator
   - ipywidgets
   - versioneer
-  - numpy
+  - black
+  - flake8
+  - pytest
+  - pytest-cov
   - pymc>=5
   - pytensor
   - nutpie
@@ -24,5 +27,3 @@ dependencies:
   - jax==0.4.28
   - blackjax
   - numpyro
-  - black
-  - flake8

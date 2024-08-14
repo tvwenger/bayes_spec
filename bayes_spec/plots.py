@@ -18,9 +18,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Changelog:
-Trey Wenger - March 2024
 """
 
 import warnings
@@ -29,30 +26,44 @@ from typing import Optional
 import arviz as az
 import arviz.labels as azl
 
+from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 import numpy as np
 
-from bayes_spec.spec_data import SpecData
+from bayes_spec import SpecData
+
+
+def plot_traces(self, posterior: az.InferenceData, var_names: list[str]) -> Axes:
+    """Helper function to generate trace plots of posterior samples
+
+    :param posterior: Posterior samples
+    :type posterior: az.InferenceData
+    :param var_names: Parameters to plot
+    :type var_names: list[str]
+    :return: `matplotlib` `Axes`
+    :rtype: Axes
+    """
+    with az.rc_context(rc={"plot.max_subplots": None}):
+        var_names = [rv.name for rv in self.model.free_RVs]
+        axes = az.plot_trace(
+            posterior.sel(chain=self.good_chains()),
+            var_names=var_names,
+        )
+    return axes
 
 
 def plot_predictive(
     data: dict[str, SpecData],
     predictive: az.InferenceData,
-    plot_fname: str,
-):
-    """
-    Generate plots of predictive checks.
+) -> Axes:
+    """Helper function to generate posterior predictive check plots.
 
-    Inputs:
-        data :: dictionary
-            Spectral data sets, where the "key" defines the name of the
-            dataset, and the value is a SpecData instance.
-        predictive :: az.InferenceData
-            Predictive samples
-        plot_fname :: string
-            Plot filename
-
-    Returns: Nothing
+    :param data: Data sets, where the key defines the name of the dataset.
+    :type data: dict[str, SpecData]
+    :param predictive: Predictive samples
+    :type predictive: az.InferenceData
+    :return: `matplotlib` `Axes`
+    :rtype: Axes
     """
     fig, axes = plt.subplots(len(data), squeeze=False, layout="constrained")
     num_chains = len(predictive.chain)
@@ -82,36 +93,23 @@ def plot_predictive(
         )
         axes[idx][0].set_xlabel(dataset.xlabel)
         axes[idx][0].set_ylabel(dataset.ylabel)
-    fig.savefig(plot_fname)
-    plt.close(fig)
+    return axes
 
 
-def plot_pair(
-    trace, var_names, label, fname, labeller: Optional[azl.MapLabeller] = None
-):
-    """
-    Pair plot helper.
+def plot_pair(trace: az.InferenceData, var_names: list[str], labeller: Optional[azl.MapLabeller] = None) -> Axes:
+    """Helper function to generate sample pair plots.
 
-    Inputs:
-        trace :: az.InferenceData
-            Samples to plot
-        var_names :: list of strings
-            variables from trace to plot
-        label :: string
-            Label for plot
-        fname :: string
-            Save plot to this filename
-        cloud :: integer or None
-            If None, combine all clouds into one. Otherwise, plot only
-            this cloud.
-        labeller :: azl.MapLabeller or None
-            If not None, use apply these labels
-
-    Returns: Nothing
+    :param trace: Samples
+    :type trace: az.InferenceData
+    :param var_names: Parameter names to plot
+    :type var_names: list[str]
+    :param labeller: `arviz` labeler, defaults to None
+    :type labeller: Optional[azl.MapLabeller], optional
+    :return: `matplotlib` `Axes`
+    :rtype: Axes
     """
     size = int(2.0 * (len(var_names) + 1))
     textsize = int(np.sqrt(size)) + 8
-    fontsize = 2 * size
     with az.rc_context(rc={"plot.max_subplots": None}):
         with warnings.catch_warnings(action="ignore"):
             axes = az.plot_pair(
@@ -140,7 +138,4 @@ def plot_pair(
     axes[0][0].set_ylabel("")
     for ax in axes.flatten():
         ax.grid(False)
-    fig = axes.ravel()[0].figure
-    fig.text(0.7, 0.8, label, ha="center", va="center", fontsize=fontsize)
-    fig.savefig(fname)
-    plt.close(fig)
+    return axes

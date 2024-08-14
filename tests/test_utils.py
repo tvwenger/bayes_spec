@@ -1,5 +1,5 @@
 """
-utils.py - Utility functions
+test_utils.py - Unit tests for utils.py
 
 Copyright(C) 2024 by
 Trey V. Wenger; tvwenger@gmail.com
@@ -18,23 +18,23 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Changelog:
+Trey Wenger - August 2024
 """
 
-import pytensor.tensor as pt
+import pytest
+
+from bayes_spec.utils import gaussian
 
 
-def gaussian(x: float, amp: float, center: float, fwhm: float) -> float:
-    """Evaluate a Gaussian function
-
-    :param x: Position at which to evaluate
-    :type x: float
-    :param amp: Gaussian amplitude
-    :type amp: float
-    :param center: Gaussian centroid
-    :type center: float
-    :param fwhm: Gaussian full-width at half-maximum
-    :type fwhm: float
-    :return: Gaussian evaluated at :param:x
-    :rtype: float
-    """
-    return amp * pt.exp(-4.0 * pt.log(2.0) * (x - center) ** 2.0 / fwhm**2.0)
+@pytest.mark.parametrize(
+    "x, amp, center, fwhm, expectation",
+    [
+        (0.0, 1.0, 0.0, 1.0, 1.0),
+        (0.5, 1.0, 0.0, 1.0, 0.5),
+        (0.0, 2.0, 1.0, 2.0, 1.0),
+    ],
+)
+def test_gaussian(x, amp, center, fwhm, expectation):
+    assert gaussian(x, amp, center, fwhm).eval() == pytest.approx(expectation)

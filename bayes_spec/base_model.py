@@ -18,13 +18,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Changelog:
-Trey Wenger - March 2024
-Trey Wenger - July 2024 - Add sample_smc
 """
 
-import os
 import warnings
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -37,18 +32,15 @@ import pytensor.tensor as pt
 
 import arviz as az
 import arviz.labels as azl
+import graphviz
 
 import numpy as np
 from numpy.polynomial import Polynomial
 
 from scipy.stats import norm
 
-import matplotlib.pyplot as plt
-import graphviz
-
-from bayes_spec.spec_data import SpecData
+from bayes_spec import SpecData
 from bayes_spec.cluster_posterior import cluster_posterior
-from bayes_spec import plots
 from bayes_spec.nuts import init_nuts
 
 
@@ -65,21 +57,18 @@ class BaseModel(ABC):
         seed: int = 1234,
         verbose: bool = False,
     ):
-        """
-        Initialize a new model
+        """Initialize a new BaseModel
 
-        Inputs:
-            data :: dictionary
-                Spectral data sets, where the "key" defines the name of the
-                dataset, and the value is a SpecData instance.
-            n_clouds :: integer
-                Number of cloud components
-            baseline_degree :: integer
-                Degree of the polynomial baseline
-            seed :: integer
-                Random seed
-            verbose :: boolean
-                Print extra info
+        :param data: Spectral data sets, where the "key" defines the name of the dataset
+        :type data: dict[str, SpecData]
+        :param n_clouds: Number of cloud components
+        :type n_clouds: int
+        :param baseline_degree: Polynomial baseline degree, defaults to 0
+        :type baseline_degree: int, optional
+        :param seed: Random seed, defaults to 1234
+        :type seed: int, optional
+        :param verbose: Print verbose output, defaults to False
+        :type verbose: bool, optional
         """
         self.n_clouds = n_clouds
         self.baseline_degree = baseline_degree
@@ -107,26 +96,27 @@ class BaseModel(ABC):
         self._cluster_features = []
 
         # Arviz labeller map
-        self.var_name_map = {
-            f"{key}_baseline_norm": r"$\beta_{\rm " + key + r"}$"
-            for key in self.data.keys()
-        }
+        self.var_name_map = {f"{key}_baseline_norm": r"$\beta_{\rm " + key + r"}$" for key in self.data.keys()}
 
         # set results and convergence checks
         self.reset_results()
 
     @abstractmethod
-    def add_priors(self, *args, **kwargs):
+    def add_priors(self, *args, **kwargs):  # pragma: no cover
+        """Must be defined in inhereted class."""
         pass
 
     @abstractmethod
-    def add_likelihood(self, *args, **kwargs):
+    def add_likelihood(self, *args, **kwargs):  # pragma: no cover
+        """Must be defined in inhereted class."""
         pass
 
     @property
-    def _n_params(self):
-        """
-        Determine the number of model parameters.
+    def _n_params(self) -> int:
+        """Determine the number of model parameters.
+
+        :return: Number of model parameters
+        :rtype: int
         """
         return (
             len(self.cloud_params) * self.n_clouds
@@ -135,34 +125,43 @@ class BaseModel(ABC):
         )
 
     @property
-    def _get_unique_solution(self):
-        """
-        Return the unique solution index (0) if there is a unique
-        solution, otherwise raise an exception.
+    def _get_unique_solution(self) -> int:
+        """Return the unique solution index (0) if there is a unique solution, otherwise raise an exception.
+
+        :raises ValueError: No unique solution
+        :return: Unique solution index (`0`)
+        :rtype: int
         """
         if not self.unique_solution:
             raise ValueError("There is not a unique solution. Must supply solution.")
         return 0
 
     @property
-    def unique_solution(self):
-        """
-        Check if posterior samples suggest a unique solution
+    def unique_solution(self) -> bool:
+        """Check if posterior samples suggest a unique solution.
+
+        :raises ValueError: No solutions
+        :return: True if there is a unique solution, False otherwise
+        :rtype: bool
         """
         if self.solutions is None or len(self.solutions) == 0:
             raise ValueError("No solutions. Try solve()")
         return len(self.solutions) == 1
 
     @property
-    def labeller(self):
-        """
-        Get the arviz labeller.
+    def labeller(self) -> azl.MapLabeller:
+        """Get the arviz labeller.
+
+        :return: Arviz labeller
+        :rtype: azl.MapLabeller
         """
         return azl.MapLabeller(var_name_map=self.var_name_map)
 
     def _validate(self):
-        """
-        Validate the model by checking the log probability at the initial point.
+        """Validate the model by checking the log probability at the initial point.
+
+        :raises ValueError: Model does not contain likelihood
+        :raises ValueError: Model likelihood fails to evaluate at the initial point
         """
         # check that likelihood has been added
         if len(self.model.observed_RVs) == 0:
@@ -170,69 +169,58 @@ class BaseModel(ABC):
 
         # check that model can be evaluated
         if not np.isfinite(self.model.logp().eval(self.model.initial_point())):
-            raise ValueError(
-                "Model initial point is not finite! Mis-specified model or bad priors?"
-            )
+            raise ValueError("Model initial point is not finite! Mis-specified model or bad priors?")
 
     def reset_results(self):
-        """
-        Reset results and convergence checks.
-
-        Inputs: None
-        Returns: Nothing
-        """
+        """Reset results and convergence checks."""
         self.approx: pm.Approximation = None
         self.trace: az.InferenceData = None
-        self.solutions = None
-        self._good_chains = None
+        self.solutions: list = None
+        self._good_chains: list = None
         self._chains_converged: bool = None
 
-    def null_bic(self):
-        """
-        Evaluate the BIC for the null hypothesis (baseline only, no clouds)
+    def graph(self) -> graphviz.Digraph:
+        """Generate visualization of the model graph. The output can be displayed in-line in a Jupyter notebook,
+        or rendered with `graph().render('filename')`.
 
-        Inputs: None
-        Returns: Nothing
+        :return: Graph visualization
+        :rtype: graphviz.Digraph
+        """
+        gviz = pm.model_to_graphviz(self.model)
+        gviz.graph_attr["rankdir"] = "TB"
+        gviz.graph_attr["splines"] = "ortho"
+        gviz.graph_attr["newrank"] = "false"
+        source = gviz.unflatten(stagger=3)
+        return source
+
+    def null_bic(self) -> float:
+        """Evaluate the Bayesian Information Criterion for the null hypothesis (baseline only, no clouds)
+
+        :return: Null hypothesis BIC
+        :rtype: float
         """
         lnlike = 0.0
         for _, dataset in self.data.items():
             # fit polynomial baseline to un-normalized spectral data
-            baseline = Polynomial.fit(
-                dataset.spectral, dataset.brightness, self.baseline_degree
-            )(dataset.spectral)
+            baseline = Polynomial.fit(dataset.spectral, dataset.brightness, self.baseline_degree)(dataset.spectral)
 
             # evaluate likelihood
-            lnlike += norm.logpdf(
-                dataset.brightness - baseline, scale=dataset.noise
-            ).sum()
+            lnlike += norm.logpdf(dataset.brightness - baseline, scale=dataset.noise).sum()
 
         n_params = len(self.data) * (self.baseline_degree + 1)
         return n_params * np.log(self._n_data) - 2.0 * lnlike
 
-    def lnlike_mean_point_estimate(
-        self, chain: Optional[int] = None, solution: Optional[int] = None
-    ):
-        """
-        Evaluate model log-likelihood at the mean point estimate of posterior samples.
+    def lnlike_mean_point_estimate(self, chain: Optional[int] = None, solution: Optional[int] = None) -> float:
+        """Evaluate model log-likelihood at the mean point estimate of posterior samples.
 
-        Inputs:
-            chain :: None or integer
-                If None (default), evaluate BIC across all chains using
-                clustered posterior samples. Otherwise, evaluate BIC for
-                this chain only using un-clustered posterior samples.
-            solution :: None or integer
-                Solution index
-                If chain is None and solution is None:
-                    If there is a unique solution, use that
-                    Otherwise, raise an exception
-                If chain is None and solution is not None:
-                    Use this solution index
-                If chain is not None:
-                    This parameter has no effect
-
-        Returns: lnlike
-            lnlike :: scalar
-                Log likelihood at point
+        :param chain: Evaluate log-likelihood for this chain using un-clustered posterior samples. If `None` evaluate
+            across all chains using clustered posterior samples, defaults to None
+        :type chain: Optional[int], optional
+        :param solution: Evaluate log-likelihood for this solution. If `None` use the unique solution if any.
+            If :param:chain is not None, this parameter has no effect, defaults to None
+        :type solution: Optional[int], optional
+        :return: Log-likelihood at the mean point estimate
+        :rtype: float
         """
         if chain is None and solution is None:
             solution = self._get_unique_solution
@@ -252,34 +240,21 @@ class BaseModel(ABC):
             if transform is None:
                 params[param] = point[name].data
             else:
-                params[param] = transform.forward(
-                    point[name].data, *rv.owner.inputs
-                ).eval()
+                params[param] = transform.forward(point[name].data, *rv.owner.inputs).eval()
 
         return float(self.model.logp().eval(params))
 
-    def bic(self, chain: Optional[int] = None, solution: Optional[int] = None):
-        """
-        Calculate the Bayesian information criterion at the mean point estimate.
+    def bic(self, chain: Optional[int] = None, solution: Optional[int] = None) -> float:
+        """Calculate the Bayesian information criterion at the mean point estimate.
 
-        Inputs:
-            chain :: None or integer
-                If None (default), evaluate BIC across all chains using
-                clustered posterior samples. Otherwise, evaluate BIC for
-                this chain only using un-clustered posterior samples.
-            solution :: None or integer
-                Solution index
-                If chain is None and solution is None:
-                    If there is a unique solution, use that
-                    Otherwise, raise an exception
-                If chain is None and solution is not None:
-                    Use this solution index
-                If chain is not None:
-                    This parameter has no effect
-
-        Returns: bic
-            bic :: scalar
-                Bayesian information criterion
+        :param chain: Evaluate BIC for this chain using un-clustered posterior samples. If `None` evaluate across all
+            chains using clustered posterior samples, defaults to None
+        :type chain: Optional[int], optional
+        :param solution: Evaluate BIC for this solution. If `None` use the unique solution if any. If :param:chain
+            is not None, this parameter has no effect, defaults to None
+        :type solution: Optional[int], optional
+        :return: Bayesian information criterion
+        :rtype: float
         """
         try:
             lnlike = self.lnlike_mean_point_estimate(chain=chain, solution=solution)
@@ -288,17 +263,15 @@ class BaseModel(ABC):
             print(e)
             return np.inf
 
-    def good_chains(self, mad_threshold: float = 5.0):
-        """
-        Identify bad chains as those with deviant BICs.
+    def good_chains(self, mad_threshold: float = 10.0) -> list:
+        """Identify bad chains as those with deviant BICs.
 
-        Inputs:
-            mad_threshold :: scalar
-                Chains are good if they have BICs within {mad_threshold} * MAD of the median BIC.
-
-        Returns: good_chains
-            good_chains :: 1-D array of integers
-                Chains that appear converged
+        :param mad_threshold: Chains are good if they have BICs within :param:mad_threshold times the median
+            absolute deviation (across all chains) of the median BIC, defaults to 10.0
+        :type mad_threshold: float, optional
+        :raises ValueError: There are no posterior samples.
+        :return: Good chain indicies
+        :rtype: list
         """
         if self.trace is None:
             raise ValueError("Model has no posterior samples. Try fit() or sample().")
@@ -314,58 +287,48 @@ class BaseModel(ABC):
             return self._good_chains
 
         # per-chain BIC
-        bics = np.array(
-            [self.bic(chain=chain) for chain in self.trace.posterior.chain.data]
-        )
+        bics = np.array([self.bic(chain=chain) for chain in self.trace.posterior.chain.data])
         mad = np.median(np.abs(bics - np.median(bics)))
         good = np.abs(bics - np.median(bics)) < mad_threshold * mad
 
         self._good_chains = self.trace.posterior.chain.data[good]
         return self._good_chains
 
-    def add_baseline_priors(self, prior_baseline_coeff=1.0):
-        """
-        Add baseline priors to model. The baseline priors are spectrally
-        normalized, such that
-        baseline_norm = coeff[0] + coeff[1]*spectral_norm + coeff[2]*spectral_norm**2 + ...
-        where spectral_norm is the normalized spectral axis and baseline_norm is the
-        normalized brightness data (both normalized to zero mean and unit variance).
-        Thus, prior_baseline_coeff can be assumed near unity.
+    def add_baseline_priors(self, prior_baseline_coeffs: Optional[dict[str, list[float]]] = None):
+        """Add baseline priors to the model. The polynomial baseline is evaluated on the normalized data like:
+        `baseline_norm = sum_i(coeff[i]/(i+1) * spectral_norm**i)`
 
-        Inputs:
-            prior_baseline_coeff :: scalar
-                Width of the Normal prior distribution on the normalized
-                baseline polynomial coefficients
-
-        Returns: Nothing
+        :param prior_baseline_coeffs: Width of normal prior distribution on the normalized baseline polynomial
+            coefficients. Keys are dataset names and values are lists of length `baseline_degree + 1`. If None,
+            use `[1.0]*(baseline_degree+1)` for each dataset, defaults to None
+        :type prior_baseline_coeffs: Optional[dict[str, list[float]]], optional
         """
+        if prior_baseline_coeffs is None:
+            prior_baseline_coeffs = {key: [1.0] * (self.baseline_degree + 1) for key in self.data.keys()}
+
         with self.model:
             for key in self.data.keys():
                 # add the normalized prior
                 _ = pm.Normal(
                     f"{key}_baseline_norm",
                     mu=0.0,
-                    sigma=prior_baseline_coeff,
+                    sigma=prior_baseline_coeffs[key],
                     dims="coeff",
                 )
 
-    def predict_baseline(self):
-        """
-        Predict the un-normalized baseline model.
+    def predict_baseline(self) -> dict[str, list[float]]:
+        """Predict the un-normalized baseline model.
 
-        Inputs: None
-
-        Returns:
-            baseline_model :: dictionary
-                Dictionary with keys like those in self.data, where each
-                value is the un-normalized baseline model
+        :return: Un-normalized baseline models for each dataset. Keys are dataset names and values are
+            the un-normalized baseline models.
+        :rtype: dict[str, list[float]]
         """
         baseline_model = {}
         for key, dataset in self.data.items():
             # evaluate the baseline
             baseline_norm = pt.sum(
                 [
-                    self.model[f"{key}_baseline_norm"][i] * dataset.spectral_norm**i
+                    self.model[f"{key}_baseline_norm"][i] / (i + 1.0) * dataset.spectral_norm**i
                     for i in range(self.baseline_degree + 1)
                 ],
                 axis=0,
@@ -373,20 +336,13 @@ class BaseModel(ABC):
             baseline_model[key] = dataset.unnormalize_brightness(baseline_norm)
         return baseline_model
 
-    def prior_predictive_check(self, samples: int = 50, plot_fname: str = None):
-        """
-        Generate prior predictive samples, and optionally plot the outcomes.
+    def sample_prior_predictive(self, samples: int = 50) -> az.InferenceData:
+        """Generate prior predictive samples
 
-        Inputs:
-            samples :: integer
-                Number of prior predictive samples to generate
-            plot_fname :: string
-                If not None, generate a plot of the outcomes over
-                the data, and save to this filename.
-
-        Returns: predictive
-            predictive :: InferenceData
-                Object containing prior and prior predictive samples
+        :param samples: Number of prior predictive samples to draw, defaults to 50
+        :type samples: int, optional
+        :return: Prior predictive samples
+        :rtype: az.InferenceData
         """
         # validate
         self._validate()
@@ -394,33 +350,23 @@ class BaseModel(ABC):
         with self.model:
             trace = pm.sample_prior_predictive(samples=samples, random_seed=self.seed)
 
-        if plot_fname is not None:
-            plots.plot_predictive(self.data, trace.prior_predictive, plot_fname)
-
         return trace
 
-    def posterior_predictive_check(
+    def sample_posterior_predictive(
         self,
         solution: Optional[int] = None,
         thin: int = 100,
-        plot_fname: Optional[str] = None,
-    ):
-        """
-        Generate posterior predictive samples, and optionally plot the outcomes.
+    ) -> az.InferenceData:
+        """Generate posterior predictive samples
 
-        Inputs:
-            solution :: integer
-                If None, generate posterior predictive samples from the un-clustered posterior
-                samples. Otherwise, generate predictive samples from this solution index.
-            thin :: integer
-                Thin posterior samples by keeping one in {thin}
-            plot_fname :: string
-                If not None, generate a plot of the outcomes over
-                the data, and save to this filename.
-
-        Returns: predictive
-            predictive :: InferenceData
-                Object containing posterior and posterior predictive samples
+        :param solution: Draw posterior predictive samples from this solution index. If None, draw samples from
+            the un-clustered posterior samples, defaults to None
+        :type solution: Optional[int], optional
+        :param thin: Thin posterior samples by keeping one in :param:thin, defaults to 100
+        :type thin: int, optional
+        :raises ValueError: No posterior samples
+        :return: Posterior predictive samples
+        :rtype: az.InferenceData
         """
         # validate
         self._validate()
@@ -430,24 +376,13 @@ class BaseModel(ABC):
 
         with self.model:
             if solution is None:
-                posterior = self.trace.posterior.sel(
-                    chain=self.good_chains(), draw=slice(None, None, thin)
-                )
+                posterior = self.trace.posterior.sel(chain=self.good_chains(), draw=slice(None, None, thin))
             else:
-                posterior = self.trace[f"solution_{solution}"].sel(
-                    draw=slice(None, None, thin)
-                )
+                posterior = self.trace[f"solution_{solution}"].sel(draw=slice(None, None, thin))
             trace = pm.sample_posterior_predictive(
                 posterior,
                 extend_inferencedata=True,
                 random_seed=self.seed,
-            )
-
-        if plot_fname is not None:
-            plots.plot_predictive(
-                self.data,
-                trace.posterior_predictive,
-                plot_fname,
             )
 
         return trace
@@ -461,26 +396,19 @@ class BaseModel(ABC):
         learning_rate: float = 1e-3,
         **kwargs,
     ):
-        """
-        Fit posterior using variational inference (VI). If you get NaNs
-        during optimization, try increasing the learning rate.
+        """Approximate posterior distribution using Variational Inference (VI).
 
-        Inputs:
-            n :: integer
-                Number of VI iterations
-            draws :: integer
-                Number of samples to draw from fitted posterior
-            rel_tolerance :: scalar
-                Relative parameter tolerance for VI convergence
-            abs_tolerance :: scalar
-                Absolute parameter tolerance for VI convergence
-            learning_rate :: scalar
-                adagrad_window learning rate. Try increasing if you get NaNs
-            **kwargs :: additional keyword arguments
-                Additional arguments passed to pymc.fit
-                (method)
-
-        Returns: Nothing
+        :param n: Number of VI iterations, defaults to 100_000
+        :type n: int, optional
+        :param draws: Number of posterior samples to draw, defaults to 1_000
+        :type draws: int, optional
+        :param rel_tolerance: Relative parameter tolerance for VI convergence, defaults to 0.001
+        :type rel_tolerance: float, optional
+        :param abs_tolerance: Absolute parameter tolerance for VI convergence, defaults to 0.001
+        :type abs_tolerance: float, optional
+        :param learning_rate: VI learning rate, defaults to 1e-3
+        :type learning_rate: float, optional
+        :param `**kwargs`: Additional arguments passed to :func:`pymc.fit`
         """
         # validate
         self._validate()
@@ -512,27 +440,19 @@ class BaseModel(ABC):
         nuts_kwargs: Optional[dict] = None,
         **kwargs,
     ):
-        """
-        Sample posterior distribution using MCMC.
+        """Sample posterior distribution using MCMC.
 
-        Inputs:
-            init :: string
-                Initialization strategy
-            n_init :: integer
-                Number of initialization iterations
-            chains :: integer
-                Number of chains
-            init_kwargs :: dictionary
-                Keyword arguments passed to init_nuts
-                (tolerance, learning_rate)
-            nuts_kwargs :: dictionary
-                Keyword arguments passed to pm.NUTS
-                (target_accept)
-            **kwargs :: additional keyword arguments
-                Keyword arguments passed to pm.sample
-                (cores, tune, draws)
-
-        Returns: Nothing
+        :param init: Initialization strategy, defaults to "advi+adapt_diag"
+        :type init: str, optional
+        :param n_init: Number of initialization iterations, defaults to 100_000
+        :type n_init: int, optional
+        :param chains: Number of independent Markov chains, defaults to 4
+        :type chains: int, optional
+        :param init_kwargs: Keyword arguments passed to :func:`init_nuts`, defaults to None
+        :type init_kwargs: Optional[dict], optional
+        :param nuts_kwargs: Keyword arguments passed to :func:`pymc.NUTS`, defaults to None
+        :type nuts_kwargs: Optional[dict], optional
+        :param `**kwargs`: Additional arguments passed to :func:`pymc.sample`
         """
         # validate
         self._validate()
@@ -541,11 +461,7 @@ class BaseModel(ABC):
         self.reset_results()
 
         # catch non-standard initialization for non-pymc samplers
-        if (
-            "nuts_sampler" in kwargs.keys()
-            and kwargs["nuts_sampler"] != "pymc"
-            and init != "auto"
-        ):
+        if "nuts_sampler" in kwargs.keys() and kwargs["nuts_sampler"] != "pymc" and init != "auto":
             init = "auto"
             warnings.warn("setting init='auto' for non-pymc sampler")
 
@@ -604,9 +520,7 @@ class BaseModel(ABC):
                 print(f"Only {len(good_chains)} chains appear converged.")
 
             # divergences
-            num_divergences = self.trace.sample_stats.diverging.sel(
-                chain=self.good_chains()
-            ).data.sum()
+            num_divergences = self.trace.sample_stats.diverging.sel(chain=self.good_chains()).data.sum()
             if num_divergences > 0:
                 print(f"There were {num_divergences} divergences in converged chains.")
 
@@ -614,16 +528,11 @@ class BaseModel(ABC):
         self,
         **kwargs,
     ):
-        """
-        Sample posterior distribution using Sequential Monte Carlo (SMC).
+        """Sample posterior distribution using Sequential Monte Carlo.
 
-        Inputs:
-            **kwargs :: additional keyword arguments
-                Keyword arguments passed to pm.sample_smc
-                (draws, chains, cores)
-
-        Returns: Nothing
+        :param `**kwargs`: Additional arguments passed to :func:`pymc.sample_smc`
         """
+
         # validate
         self._validate()
 
@@ -644,17 +553,13 @@ class BaseModel(ABC):
             if len(good_chains) < len(self.trace.posterior.chain):
                 print(f"Only {len(good_chains)} chains appear converged.")
 
-    def solve(self, p_threshold=0.9):
-        """
-        Cluster posterior samples and determine unique solutions. Adds
-        new groups to self.trace called "solution_{idx}" for the posterior
-        samples of each unique solution.
+    def solve(self, p_threshold: float = 0.9):
+        """Cluster posterior samples, determine unique solutions, and break the labeling degeneracy.
+        Adds new groups to the `trace` called `solution_{idx}` with the clustered posterior samples
+        of each unique solution.
 
-        Inputs:
-            p_threshold :: scalar
-                p-value threshold for considering a unique solution
-
-        Returns: Nothing
+        :param p_threshold: p-value threshold for unique solutions, defaults to 0.9
+        :type p_threshold: float, optional
         """
         # Drop solutions if they already exist in trace
         for group in list(self.trace.groups()):
@@ -680,15 +585,11 @@ class BaseModel(ABC):
             else:
                 print(f"GMM found {len(solutions)} unique solutions")
                 for solution_idx, solution in enumerate(solutions):
-                    print(
-                        f"Solution {solution_idx}: chains {list(solution['label_orders'].keys())}"
-                    )
+                    print(f"Solution {solution_idx}: chains {list(solution['label_orders'].keys())}")
 
         # labeling degeneracy check
         for solution_idx, solution in enumerate(solutions):
-            label_orders = np.array(
-                [label_order for label_order in solution["label_orders"].values()]
-            )
+            label_orders = np.array([label_order for label_order in solution["label_orders"].values()])
             if self.verbose and not np.all(label_orders == label_orders[0]):
                 print(f"Label order mismatch in solution {solution_idx}")
                 for chain, label_order in solution["label_orders"].items():
@@ -705,117 +606,3 @@ class BaseModel(ABC):
                     }
                 )
                 self.solutions.append(solution_idx)
-
-    def plot_graph(self, dotfile: str, ext: str):
-        """
-        Generate dot plot of model graph.
-
-        Inputs:
-            dotfile :: string
-                Where graphviz source is saved
-            ext :: string
-                Rendered image is {dotfile}.{ext}
-
-        Returns: Nothing
-        """
-        gviz = pm.model_to_graphviz(self.model)
-        gviz.graph_attr["rankdir"] = "TB"
-        gviz.graph_attr["splines"] = "ortho"
-        gviz.graph_attr["newrank"] = "false"
-        source = gviz.unflatten(stagger=3)
-
-        # save and render
-        with open(dotfile, "w", encoding="ascii") as f:
-            f.write("\n".join(source))
-        graphviz.render("dot", ext, dotfile)
-
-    def plot_traces(self, plot_fname: str, warmup: bool = False):
-        """
-        Plot traces for all chains.
-
-        Inputs:
-            plot_fname :: string
-                Plot filename
-            warmup :: boolean
-                If True, plot warmup samples instead
-
-        Returns: Nothing
-        """
-        posterior = self.trace.warmup_posterior if warmup else self.trace.posterior
-        with az.rc_context(rc={"plot.max_subplots": None}):
-            var_names = [rv.name for rv in self.model.free_RVs]
-            axes = az.plot_trace(
-                posterior.sel(chain=self.good_chains()),
-                var_names=var_names,
-            )
-            fig = axes.ravel()[0].figure
-            fig.tight_layout()
-            fig.savefig(plot_fname, bbox_inches="tight")
-            plt.close(fig)
-
-    def plot_pair(self, plot_fname: str, solution: Optional[int] = None):
-        """
-        Generate pair plots from clustered posterior samples.
-
-        Inputs:
-            plot_fname :: string
-                Figure filename with the format: {basename}.{ext}
-                Several plots are generated:
-                {basename}.{ext}
-                    Pair plot of non-clustered cloud parameters
-                {basename}_determ.{ext}
-                    Pair plot of non-clustered cloud deterministic parameters
-                {basename}_{cloud}.{ext}
-                    Pair plot of clustered cloud with index {cloud} parameters
-                {basename}_{num}_determ.{ext}
-                    Pair plot of clustered cloud with index {cloud} deterministic parameters
-                {basename}_other.{ext}
-                    Pair plot of baseline and hyper parameters
-            solution :: None or integer
-                Plot the posterior samples associated with this solution index. If
-                solution is None and there is a unique solution, use that.
-                Otherwise, raise an exception.
-
-        Returns: Nothing
-        """
-        if solution is None:
-            solution = self._get_unique_solution
-        trace = self.trace[f"solution_{solution}"]
-
-        basename, ext = os.path.splitext(plot_fname)
-
-        # All cloud free parameters
-        plots.plot_pair(
-            trace,
-            self.cloud_params,
-            "All Clouds\nFree Parameters",
-            plot_fname,
-        )
-        # All cloud deterministic parameters
-        plots.plot_pair(
-            trace,
-            self.deterministics,
-            "All Clouds\nDerived Quantities",
-            basename + "_determ" + ext,
-        )
-        # Baseline & hyper parameters
-        plots.plot_pair(
-            trace,
-            self.baseline_params + self.hyper_params,
-            "All Clouds\nDerived Quantities",
-            basename + "_other" + ext,
-        )
-        # Cloud quantities
-        for cloud in range(self.n_clouds):
-            plots.plot_pair(
-                trace.sel(cloud=cloud),
-                self.cloud_params,
-                f"Cloud {cloud}\nFree Parameters",
-                basename + f"_{cloud}" + ext,
-            )
-            plots.plot_pair(
-                trace.sel(cloud=cloud),
-                self.deterministics,
-                f"Cloud {cloud}\nDerived Quantities",
-                basename + f"_{cloud}_determ" + ext,
-            )

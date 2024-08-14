@@ -1,6 +1,6 @@
 """
-gauss_line_noise.py
-Defines GaussLineNoise, a Gaussian line profile model.
+gauss_noise_model.py
+Defines GaussNoiseModel, a Gaussian line profile model.
 
 Copyright(C) 2024 by
 Trey V. Wenger; tvwenger@gmail.com
@@ -19,30 +19,24 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Changelog:
-Trey Wenger - July 2024
 """
 
 import pymc as pm
 
-from bayes_spec.models import GaussLine
+from bayes_spec.models import GaussModel
 
 
-class GaussLineNoise(GaussLine):
+class GaussNoiseModel(GaussModel):
     """
     Definition of a Gaussian line profile model, with noise as an additional
     free parameter.
     """
 
     def __init__(self, *args, **kwargs):
-        """
-        Define model parameters, deterministic quantities, posterior
-        clustering features, and TeX parameter representations.
+        """Initialize a new GaussModel instance
 
-        Inputs: see bayes_spec.BaseModel
-
-        Returns: new GaussLine instance
+        :param `*args`: Arguments passed to :class:`BaseModel`
+        :param `**kwargs`: Keyword arguments passed to :class:`BaseModel`
         """
         # Initialize BaseModel
         super().__init__(*args, **kwargs)
@@ -69,16 +63,13 @@ class GaussLineNoise(GaussLine):
         prior_rms: float = 1.0,
         **kwargs,
     ):
-        """
-        Add priors tot he model.
+        """Add priors to the model.
 
-        Inputs:
-            prior_rms :: scalar
-                Prior distribution on spectral rms (K), where:
-                rms ~ HalfNormal(sigma=prior_rms)
-            **kwargs :: see GaussLine.add_priors()
-
-        Returns: Nothing
+        :param prior_rms: Prior distribution on spectral rms (K), where
+            rms ~ HalfNormal(sigma=prior_rms)
+            defaults to 1.0
+        :type prior_rms: float, optional
+        :param `**kwargs`: Additional keyword arguments passed to :class:`GaussModel.add_priors`
         """
         # Add GaussLine priors
         super().add_priors(**kwargs)
@@ -90,12 +81,7 @@ class GaussLineNoise(GaussLine):
             _ = pm.Deterministic("rms_observation", rms_observation_norm * prior_rms)
 
     def add_likelihood(self):
-        """
-        Add the likelihood to the model. The SpecData key must be "observation".
-
-        Inputs: None
-        Returns: Nothing
-        """
+        """Add likelihood to the model. Data key must be "observation"."""
         # Predict emission
         predicted = self.predict()
 

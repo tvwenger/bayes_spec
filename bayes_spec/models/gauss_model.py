@@ -1,6 +1,6 @@
 """
-gauss_line.py
-Defines GaussLine, a Gaussian line profile model.
+gauss_model.py
+Defines GaussModel, a Gaussian line profile model.
 
 Copyright(C) 2024 by
 Trey V. Wenger; tvwenger@gmail.com
@@ -19,12 +19,9 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Changelog:
-Trey Wenger - July 2024
 """
 
-from typing import Iterable
+from typing import Iterable, Optional
 
 import numpy as np
 import pymc as pm
@@ -33,20 +30,18 @@ from bayes_spec import BaseModel
 from bayes_spec.utils import gaussian
 
 
-class GaussLine(BaseModel):
+class GaussModel(BaseModel):
     """
     Definition of a Gaussian line profile model.
     """
 
     def __init__(self, *args, **kwargs):
-        """
-        Define model parameters, deterministic quantities, posterior
-        clustering features, and TeX parameter representations.
+        """Initialize a new GaussModel instance
 
-        Inputs: see bayes_spec.BaseModel
-
-        Returns: new GaussLine instance
+        :param `*args`: Arguments passed to :class:`BaseModel`
+        :param `**kwargs`: Keyword arguments passed to :class:`BaseModel`
         """
+
         # Initialize BaseModel
         super().__init__(*args, **kwargs)
 
@@ -86,39 +81,40 @@ class GaussLine(BaseModel):
         prior_line_area: float = 100.0,
         prior_fwhm: float = 25.0,
         prior_velocity: Iterable[float] = [0.0, 25.0],
-        prior_baseline_coeff: float = 1.0,
+        prior_baseline_coeffs: Optional[Iterable[float]] = None,
+        ordered: bool = False,
     ):
-        """
-        Add priors to the model.
+        """Add priors to the model.
 
-        Inputs:
-            prior_line_area :: scalar
-                Prior distribution on line area (K km s-1), where:
-                line_area ~ Gamma(alpha=2.0, beta=1.0/prior_line_area)
-            prior_fwhm :: scalar
-                Prior distribution on line area (K km s-1), where:
-                line_area ~ Gamma(alpha=2.0, beta=1.0/prior_line_area)
-                Mode of the k=2 gamma distribution Gaussian FWHM line width prior
-            prior_vlsr :: two-element array of scalars
-                Prior distribution on line centroid velocity (km s-1), where:
-                velocity ~ Normal(mu=prior_velocity[0], sigma=prior_velocity[1])
-            prior_baseline_coeff :: scalar
-                Prior distribution on normalized polynomial baseline coefficients, where:
-                coeff ~ Normal(mu=0, sigma=prior_baseline_coeffs)
-
-        Returns: Nothing
+        :param prior_line_area: Prior distribution on line area (K km s-1), where
+            line_area ~ Gamma(alpha=2.0, beta=1.0/prior_line_area)
+            defaults to 100.0
+        :type prior_line_area: float, optional
+        :param prior_fwhm: Prior distribution on line FWHM (km s-1), where
+            fwhm ~ Gamma(alpha=2.0, beta=1.0/prior_fwhm)
+            defaults to 25.0
+        :type prior_fwhm: float, optional
+        :param prior_velocity: Prior distribution on line centroid velocity (km s-1), where
+            velocity ~ Normal(mu=prior_velocity[0], sigma=prior_velocity[1]) if :param:ordered is `False`
+            velocity(cloud=N) ~ prior_velocity[0] + sum(velocity(cloud<N)) + Gamma(alpha=2.0, beta=1.0/prior_velocity[1]) if :param:ordered is `True`
+            defaults to [0.0, 25.0]
+        :type prior_velocity: Iterable[float], optional
+        :param prior_baseline_coeffs: Width of normal prior distribution on the normalized baseline polynomial
+            coefficients. If None, use `[1.0]*(baseline_degree+1)`, defaults to None
+        :type prior_baseline_coeff: float, optional
+        :param ordered: If True, assume ordered velocities, defaults to False
+        :type ordered: bool
         """
+        if prior_baseline_coeffs is not None:
+            prior_baseline_coeffs = {"observation": prior_baseline_coeffs}
+
         # add polynomial baseline priors
-        super().add_baseline_priors(prior_baseline_coeff=prior_baseline_coeff)
+        super().add_baseline_priors(prior_baseline_coeffs=prior_baseline_coeffs)
 
         with self.model:
             # Line area per cloud
-            line_area_norm = pm.Gamma(
-                "line_area_norm", alpha=2.0, beta=1.0, dims="cloud"
-            )
-            line_area = pm.Deterministic(
-                "line_area", prior_line_area * line_area_norm, dims="cloud"
-            )
+            line_area_norm = pm.Gamma("line_area_norm", alpha=2.0, beta=1.0, dims="cloud")
+            line_area = pm.Deterministic("line_area", prior_line_area * line_area_norm, dims="cloud")
 
             # FWHM line width per cloud
             fwhm_norm = pm.Gamma(
@@ -130,17 +126,26 @@ class GaussLine(BaseModel):
             fwhm = pm.Deterministic("fwhm", prior_fwhm * fwhm_norm, dims="cloud")
 
             # Centroid velocity per cloud
-            velocity_norm = pm.Normal(
-                "velocity_norm",
-                mu=0.0,
-                sigma=1.0,
-                dims="cloud",
-            )
-            _ = pm.Deterministic(
-                "velocity",
-                prior_velocity[0] + prior_velocity[1] * velocity_norm,
-                dims="cloud",
-            )
+            if ordered:
+                velocity_norm = pm.Gamma("velocity_norm", alpha=2.0, beta=1.0, dims="cloud")
+                velocity_offset = velocity_norm * prior_velocity[1]
+                _ = pm.Deterministic(
+                    "velocity",
+                    prior_velocity[0] + pm.math.cumsum(velocity_offset),
+                    dims="cloud",
+                )
+            else:
+                velocity_norm = pm.Normal(
+                    "velocity_norm",
+                    mu=0.0,
+                    sigma=1.0,
+                    dims="cloud",
+                )
+                _ = pm.Deterministic(
+                    "velocity",
+                    prior_velocity[0] + prior_velocity[1] * velocity_norm,
+                    dims="cloud",
+                )
 
             # Deterministic amplitude per cloud
             _ = pm.Deterministic(
@@ -149,15 +154,11 @@ class GaussLine(BaseModel):
                 dims="cloud",
             )
 
-    def predict(self):
-        """
-        Predict emission spectrum from model parameters.
+    def predict(self) -> Iterable[float]:
+        """Predict observed spectrum from model parameters.
 
-        Inputs: None
-
-        Returns: predicted
-            predicted :: 1-D array of scalars
-                Predicted emission spectrum (K)
+        :return: Predicted spectrum
+        :rtype: Iterable[float]
         """
         # Evaluate line profile model per cloud, sum over clouds
         predicted_line = gaussian(
@@ -173,12 +174,7 @@ class GaussLine(BaseModel):
         return predicted
 
     def add_likelihood(self):
-        """
-        Add the likelihood to the model. The SpecData key must be "observation".
-
-        Inputs: None
-        Returns: Nothing
-        """
+        """Add likelihood to the model. Data key must be "observation"."""
         # Predict emission
         predicted = self.predict()
 
