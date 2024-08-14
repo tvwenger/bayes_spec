@@ -21,7 +21,7 @@ exclude_patterns = []
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../bayes_spec"))
+sys.path.insert(0, os.path.abspath("../../bayes_spec"))
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
