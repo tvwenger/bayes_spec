@@ -163,7 +163,7 @@ If we assume that the emission is optically thin, then we can set `ordered_veloc
 
 # Syntax & Examples
 
-See the various tutorial notebooks under [examples](https://github.com/tvwenger/bayes_spec/tree/main/examples). The tutorials and full API are available here: https://bayes-spec.readthedocs.io.
+See the various tutorial notebooks under [docs/source/notebooks](https://github.com/tvwenger/bayes_spec/tree/main/docs/source/notebooks). Tutorials and the full API are available here: https://bayes-spec.readthedocs.io.
 
 # Issues and Contributing
 

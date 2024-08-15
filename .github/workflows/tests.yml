@@ -3,6 +3,9 @@ name: pytest
 on:
   pull_request:
     branches: [ main ]
+    paths:
+        - 'bayes_spec/**'
+        - 'tests/**'
 
 jobs:
   build:
