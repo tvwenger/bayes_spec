@@ -23,7 +23,7 @@ dependencies:
   - scikit-learn
   - graphviz
   - nvidia::cuda-toolkit
-  - jaxlib=*=*cuda*
+  - jaxlib==0.4.28[cuda]
   - jax==0.4.28
   - blackjax
   - numpyro
