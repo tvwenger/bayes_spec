@@ -132,7 +132,7 @@ class BaseModel(ABC):
         :return: Unique solution index (`0`)
         :rtype: int
         """
-        if not self.unique_solution:
+        if not self.unique_solution:  # pragma: no cover
             raise ValueError("There is not a unique solution. Must supply solution.")
         return 0
 
@@ -179,12 +179,12 @@ class BaseModel(ABC):
         self._good_chains: list = None
         self._chains_converged: bool = None
 
-    def graph(self) -> graphviz.Digraph:
+    def graph(self) -> graphviz.sources.Source:
         """Generate visualization of the model graph. The output can be displayed in-line in a Jupyter notebook,
         or rendered with `graph().render('filename')`.
 
         :return: Graph visualization
-        :rtype: graphviz.Digraph
+        :rtype: graphviz.sources.Source
         """
         gviz = pm.model_to_graphviz(self.model)
         gviz.graph_attr["rankdir"] = "TB"
@@ -259,7 +259,7 @@ class BaseModel(ABC):
         try:
             lnlike = self.lnlike_mean_point_estimate(chain=chain, solution=solution)
             return self._n_params * np.log(self._n_data) - 2.0 * lnlike
-        except ValueError as e:
+        except ValueError as e:  # pragma: no cover
             print(e)
             return np.inf
 
@@ -296,10 +296,10 @@ class BaseModel(ABC):
 
     def add_baseline_priors(self, prior_baseline_coeffs: Optional[dict[str, list[float]]] = None):
         """Add baseline priors to the model. The polynomial baseline is evaluated on the normalized data like:
-        `baseline_norm = sum_i(coeff[i]/(i+1) * spectral_norm**i)`
+        `baseline_norm = sum_i(coeff[i]/(i+1)**i * spectral_norm**i)`
 
         :param prior_baseline_coeffs: Width of normal prior distribution on the normalized baseline polynomial
-            coefficients. Keys are dataset names and values are lists of length `baseline_degree + 1`. If None,
+            coefficients. Keys are dataset names and values are lists of length `baseline_degree+1`. If None,
             use `[1.0]*(baseline_degree+1)` for each dataset, defaults to None
         :type prior_baseline_coeffs: Optional[dict[str, list[float]]], optional
         """
@@ -328,7 +328,7 @@ class BaseModel(ABC):
             # evaluate the baseline
             baseline_norm = pt.sum(
                 [
-                    self.model[f"{key}_baseline_norm"][i] / (i + 1.0) * dataset.spectral_norm**i
+                    self.model[f"{key}_baseline_norm"][i] / (i + 1.0) ** i * dataset.spectral_norm**i
                     for i in range(self.baseline_degree + 1)
                 ],
                 axis=0,
@@ -550,7 +550,7 @@ class BaseModel(ABC):
         if self.verbose:
             # converged chains
             good_chains = self.good_chains()
-            if len(good_chains) < len(self.trace.posterior.chain):
+            if len(good_chains) < len(self.trace.posterior.chain):  # pragma: no cover
                 print(f"Only {len(good_chains)} chains appear converged.")
 
     def solve(self, p_threshold: float = 0.9):
@@ -563,7 +563,7 @@ class BaseModel(ABC):
         """
         # Drop solutions if they already exist in trace
         for group in list(self.trace.groups()):
-            if "solution" in group:
+            if "solution" in group:  # pragma: no cover
                 del self.trace[group]
 
         self.solutions = []
@@ -582,7 +582,7 @@ class BaseModel(ABC):
         if self.verbose:
             if unique_solution:
                 print("GMM converged to unique solution")
-            else:
+            else:  # pragma: no cover
                 print(f"GMM found {len(solutions)} unique solutions")
                 for solution_idx, solution in enumerate(solutions):
                     print(f"Solution {solution_idx}: chains {list(solution['label_orders'].keys())}")
@@ -590,7 +590,7 @@ class BaseModel(ABC):
         # labeling degeneracy check
         for solution_idx, solution in enumerate(solutions):
             label_orders = np.array([label_order for label_order in solution["label_orders"].values()])
-            if self.verbose and not np.all(label_orders == label_orders[0]):
+            if self.verbose and not np.all(label_orders == label_orders[0]):  # pragma: no cover
                 print(f"Label order mismatch in solution {solution_idx}")
                 for chain, label_order in solution["label_orders"].items():
                     print(f"Chain {chain} order: {label_order}")

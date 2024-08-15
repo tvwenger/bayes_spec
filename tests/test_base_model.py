@@ -18,9 +18,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Changelog:
-Trey Wenger - August 2024
 """
 
 from contextlib import ExitStack as does_not_raise
@@ -89,11 +86,11 @@ def test_attributes():
     brightness = 10.0 * _RNG.randn(1000) + 10.0
     data = {"observation": SpecData(spectral, brightness, 1.0)}
 
-    model = ModelC(data, 2, baseline_degree=3, seed=1234, verbose=False)
+    model = ModelC(data, 2, baseline_degree=3, seed=1234, verbose=True)
     assert model.n_clouds == 2
     assert model.baseline_degree == 3
     assert model.seed == 1234
-    assert model.verbose is False
+    assert model.verbose is True
     assert model.data == data
     assert model._n_data == 1000
     assert model._n_params == 7

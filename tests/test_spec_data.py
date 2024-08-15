@@ -18,9 +18,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Changelog:
-Trey Wenger - August 2024
 """
 
 from contextlib import ExitStack as does_not_raise
@@ -55,9 +52,5 @@ def test_normalize():
     assert data.spectral_norm.min() == pytest.approx(-1.0)
     assert data.brightness_norm.mean() == pytest.approx(0.0)
     assert data.brightness_norm.std() == pytest.approx(1.0)
-    assert data.unnormalize_brightness(
-        data.normalize_brightness(brightness)
-    ) == pytest.approx(brightness)
-    assert data.unnormalize_spectral(
-        data.normalize_spectral(spectral)
-    ) == pytest.approx(spectral)
+    assert data.unnormalize_brightness(data.normalize_brightness(brightness)) == pytest.approx(brightness)
+    assert data.unnormalize_spectral(data.normalize_spectral(spectral)) == pytest.approx(spectral)

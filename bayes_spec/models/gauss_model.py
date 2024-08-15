@@ -41,7 +41,6 @@ class GaussModel(BaseModel):
         :param `*args`: Arguments passed to :class:`BaseModel`
         :param `**kwargs`: Keyword arguments passed to :class:`BaseModel`
         """
-
         # Initialize BaseModel
         super().__init__(*args, **kwargs)
 

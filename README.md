@@ -1,7 +1,15 @@
 # bayes_spec <!-- omit in toc -->
+
+![publish](https://github.com/tvwenger/bayes_spec/actions/workflows/publish.yml/badge.svg)
+![tests](https://github.com/tvwenger/bayes_spec/actions/workflows/tests.yml/badge.svg)
+[![codecov](https://codecov.io/github/tvwenger/bayes_spec/graph/badge.svg?token=XNGOS4M6TZ)](https://codecov.io/github/tvwenger/bayes_spec)
+[![Documentation Status](https://readthedocs.org/projects/bayes-spec/badge/?version=latest)](https://bayes-spec.readthedocs.io/en/latest/?badge=latest)
+
 A Bayesian Spectral Line Modeling Framework for Astrophysics
 
 `bayes_spec` is a framework for user-defined, cloud-based models of astrophysical systems (e.g., the interstellar medium) that enables spectral line simulation and statistical inference. Built in the [`pymc` probabilistic programming library](https://www.pymc.io/welcome.html), `bayes_spec` uses Monte Carlo Markov Chain techniques to fit user-defined models to data. The user-defined models can be a simple line profile (e.g., a Gaussian profile) or a complicated physical model. The models are "cloud-based", meaning there can be multiple "clouds" or "components" each with a unique set of the model parameters. `bayes_spec` includes algorithms to estimate the optimal number of components in a given dataset.
+
+Read below to get started, and check out the tutorials here: https://bayes-spec.readthedocs.io.
 
 - [Installation](#installation)
   - [Basic Installation](#basic-installation)
@@ -15,6 +23,10 @@ A Bayesian Spectral Line Modeling Framework for Astrophysics
   - [Posterior Sampling: SMC](#posterior-sampling-smc)
   - [Posterior Clustering: Gaussian Mixture Models](#posterior-clustering-gaussian-mixture-models)
   - [Optimization](#optimization)
+- [Models](#models)
+  - [`bayes_spec.models.GaussModel`](#bayes_specmodelsgaussmodel)
+  - [`bayes_spec.models.GaussNoiseModel`](#bayes_specmodelsgaussnoisemodel)
+  - [`ordered_velocity`](#ordered_velocity)
 - [Syntax \& Examples](#syntax--examples)
 - [Issues and Contributing](#issues-and-contributing)
 - [License and Copyright](#license-and-copyright)
@@ -112,9 +124,46 @@ It is also possible that the model solution is degenerate, the posterior distrib
 
 `bayes_spec` can optimize the number of clouds in addition to the other model parameters. The `Optimize` class will use VI, MCMC, and/or SMC to estimate the preferred number of clouds.
 
+# Models
+
+`bayes_spec` provides two basic models for convenience. 
+
+## `bayes_spec.models.GaussModel`
+
+`GaussModel` is a Gaussian line profile model. The model assumes that the emission of each cloud is a Gaussian-shaped spectral line. The `SpecData` key must be `"observation"`. The following diagram demonstrates the relationship between the free parameters (empty ellipses), deterministic quantities (rectangles), model predictions (filled ellipses), and observations (filled, round rectangles). Many of the parameters are internally normalized (and thus have names like `_norm`). The subsequent tables describe the model parameters in more detail.
+
+![gauss model](docs/build/html/_images/notebooks_basic_tutorial_13_0.svg)
+
+| Cloud Parameter<br>`variable` | Parameter                                   | Units      | Prior, where<br>($p_0, p_1, \dots$) = `prior_{variable}`         | Default<br>`prior_{variable}` |
+| :---------------------------- | :------------------------------------------ | :--------- | :--------------------------------------------------------------- | :---------------------------- |
+| `line_area`                   | Integrated line area                        | `K km s-1` | $\int T_{B, \rm H} dV \sim {\rm Gamma}(\alpha=2.0, \beta=1.0/p)$ | `100.0`                       |
+| `fwhm`                        | FWHM line width                             | `km s-1`   | $\Delta V_{\rm H} \sim {\rm Gamma}(\alpha=3.0, \beta=2.0/p)$     | `20.0`                        |  |
+| `velocity`                    | Center velocity                             | `km s-1`   | $V_{\rm LSR, H} \sim {\rm Normal}(\mu=p_0, \sigma=p_1)$          | `[0.0, 25.0]`                 |
+| `baseline_coeffs`             | Normalized polynomial baseline coefficients | ``         | $\beta_i \sim {\rm Normal}(\mu=0.0, \sigma=p_i)$                 | `[1.0]*baseline_degree`       |
+
+## `bayes_spec.models.GaussNoiseModel`
+
+`GaussNoiseModel` extends `GaussModel` to add an additional free parameter: the spectral rms noise. The `SpecData` key must be `"observation"`.
+
+![gauss noise model](docs/build/html/_images/notebooks_basic_tutorial_noise_9_0.svg)
+
+| Hyper Parameter<br>`variable` | Parameter          | Units | Prior, where<br>($p_0, p_1, \dots$) = `prior_{variable}` | Default<br>`prior_{variable}` |
+| :---------------------------- | :----------------- | :---- | :------------------------------------------------------- | :---------------------------- |
+| `rms`                         | Spectral rms noise | `K`   | ${\rm rms} \sim {\rm HalfNormal}(\sigma=p)$              | `1.0`                         |
+
+## `ordered_velocity`
+
+An additional parameter to `set_priors` for these models is `ordered_velocity`. By default, this parameter is `False`, in which case the order of the clouds is from nearest to farthest. Sampling from these models can be challenging due to the labeling degeneracy: if the order of clouds does not matter (i.e., the emission is optically thin), then each Markov chain could decide on a different, equally-valid order of clouds.
+
+If we assume that the emission is optically thin, then we can set `ordered_velocity=True`, in which case the order of clouds is restricted to be increasing with velocity. This assumption can *drastically* improve sampling efficiency. When `ordered_velocity=True`, the `velocity` prior is defined differently:
+
+| Cloud Parameter<br>`variable` | Parameter       | Units    | Prior, where<br>($p_0, p_1, \dots$) = `prior_{variable}`                 | Default<br>`prior_{variable}` |
+| :---------------------------- | :-------------- | :------- | :----------------------------------------------------------------------- | :---------------------------- |
+| `velocity`                    | Center velocity | `km s-1` | $V_i \sim p_0 + \sum_0^{i-1} V_i + {\rm Gamma}(\alpha=2, \beta=1.0/p_1)$ | `[0.0, 25.0]`                 |
+
 # Syntax & Examples
 
-See the various notebooks under [examples](https://github.com/tvwenger/bayes_spec/tree/main/examples).
+See the various tutorial notebooks under [examples](https://github.com/tvwenger/bayes_spec/tree/main/examples). The tutorials and full API are available here: https://bayes-spec.readthedocs.io.
 
 # Issues and Contributing
 

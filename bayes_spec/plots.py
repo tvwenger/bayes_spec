@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import warnings
-from typing import Optional
+from typing import Optional, Iterable
 
 import arviz as az
 import arviz.labels as azl
@@ -33,7 +33,7 @@ import numpy as np
 from bayes_spec import SpecData
 
 
-def plot_traces(self, posterior: az.InferenceData, var_names: list[str]) -> Axes:
+def plot_traces(posterior: az.InferenceData, var_names: list[str]) -> Iterable[Axes]:
     """Helper function to generate trace plots of posterior samples
 
     :param posterior: Posterior samples
@@ -44,9 +44,8 @@ def plot_traces(self, posterior: az.InferenceData, var_names: list[str]) -> Axes
     :rtype: Axes
     """
     with az.rc_context(rc={"plot.max_subplots": None}):
-        var_names = [rv.name for rv in self.model.free_RVs]
         axes = az.plot_trace(
-            posterior.sel(chain=self.good_chains()),
+            posterior,
             var_names=var_names,
         )
     return axes
@@ -55,7 +54,7 @@ def plot_traces(self, posterior: az.InferenceData, var_names: list[str]) -> Axes
 def plot_predictive(
     data: dict[str, SpecData],
     predictive: az.InferenceData,
-) -> Axes:
+) -> Iterable[Axes]:
     """Helper function to generate posterior predictive check plots.
 
     :param data: Data sets, where the key defines the name of the dataset.
@@ -96,7 +95,9 @@ def plot_predictive(
     return axes
 
 
-def plot_pair(trace: az.InferenceData, var_names: list[str], labeller: Optional[azl.MapLabeller] = None) -> Axes:
+def plot_pair(
+    trace: az.InferenceData, var_names: list[str], labeller: Optional[azl.MapLabeller] = None
+) -> Iterable[Axes]:
     """Helper function to generate sample pair plots.
 
     :param trace: Samples
