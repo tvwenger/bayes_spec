@@ -1,6 +1,5 @@
 sphinx_rtd_theme
 nbsphinx
-sphinx-autoapi
 numpy
 pymc>=5
 pytensor
