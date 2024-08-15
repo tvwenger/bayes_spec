@@ -65,18 +65,36 @@ def test_optimize():
     }
 
     # VI + MCMC
-    opt.optimize(fit_kwargs=fit_kwargs, sample_kwargs=sample_kwargs, approx=True, smc=False)
+    opt.optimize(
+        fit_kwargs=fit_kwargs,
+        sample_kwargs=sample_kwargs,
+        approx=True,
+        smc=False,
+    )
     assert opt.best_model.n_clouds == 1
 
     # MCMC only
-    opt.optimize(sample_kwargs=sample_kwargs, approx=False, smc=False)
+    opt.optimize(
+        sample_kwargs=sample_kwargs,
+        approx=False,
+        smc=False,
+    )
 
     # VI + SMC
     sample_kwargs = {
         "chains": 2,
         "draws": 100,
     }
-    opt.optimize(fit_kwargs=fit_kwargs, sample_kwargs=sample_kwargs, approx=True, smc=True)
+    opt.optimize(
+        fit_kwargs=fit_kwargs,
+        sample_kwargs=sample_kwargs,
+        approx=True,
+        smc=True,
+    )
 
     # SMC only
-    opt.optimize(sample_kwargs=sample_kwargs, approx=False, smc=True)
+    opt.optimize(
+        sample_kwargs=sample_kwargs,
+        approx=False,
+        smc=True,
+    )
