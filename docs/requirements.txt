@@ -1,3 +1,17 @@
 sphinx_rtd_theme
 nbsphinx
 sphinx-autoapi
+numpy
+pymc>=5
+pytensor
+nutpie
+numba
+arviz
+matplotlib
+scipy
+scikit-learn
+graphviz
+jaxlib==0.4.28
+jax==0.4.28
+blackjax
+numpyro
