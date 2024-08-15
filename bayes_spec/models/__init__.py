@@ -1,5 +1,4 @@
-__all__ = ["GaussLine", "GaussLineNoise", "GaussLineNoiseOrdered"]
+__all__ = ["GaussModel", "GaussNoiseModel"]
 
-from bayes_spec.models.gauss_line import GaussLine
-from bayes_spec.models.gauss_line_noise import GaussLineNoise
-from bayes_spec.models.gauss_line_noise_ordered import GaussLineNoiseOrdered
+from bayes_spec.models.gauss_model import GaussModel
+from bayes_spec.models.gauss_noise_model import GaussNoiseModel

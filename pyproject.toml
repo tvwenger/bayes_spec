@@ -13,7 +13,7 @@ tag_prefix = "v"
 name = "bayes_spec"
 description = "A Bayesian Spectral Line Modeling Framework for Astrophysics"
 authors = [
-  { name="Trey Wenger", email="tvwenger@gmail.com" },
+    { name="Trey Wenger", email="tvwenger@gmail.com" },
 ]
 readme = "README.md"
 license = { file="LICENSE" }
@@ -30,3 +30,8 @@ Homepage = "https://github.com/tvwenger/bayes_spec"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
+
+[tool.coverage.run]
+omit = [
+    "bayes_spec/_version.py",
+]
