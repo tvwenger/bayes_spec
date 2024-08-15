@@ -21,7 +21,8 @@ extensions = ["sphinx.ext.autodoc", "sphinx_rtd_theme", "nbsphinx"]
 templates_path = ["_templates"]
 exclude_patterns = []
 
-sys.path.insert(0, os.path.abspath("../../bayes_spec"))
+# add root dir to path
+sys.path.insert(0, os.path.abspath("../../"))
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
