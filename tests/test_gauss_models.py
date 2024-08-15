@@ -24,7 +24,6 @@ Changelog:
 Trey Wenger - August 2024
 """
 
-from contextlib import ExitStack as does_not_raise
 import pytest
 
 import numpy as np
@@ -60,12 +59,19 @@ def test_gauss_model():
     with pytest.raises(ValueError):
         model._validate()
 
+    # Fit single-component model with VI
+    data = {"observation": SpecData(spectral, brightness, noise)}
+    model = GaussModel(data, 1, baseline_degree=0, seed=1234, verbose=False)
+    model.add_priors(prior_baseline_coeffs=[1.0])
+    model.add_likelihood()
+    model.fit()
+
     # Sample single-component model
     data = {"observation": SpecData(spectral, brightness, noise)}
     model = GaussModel(data, 1, baseline_degree=0, seed=1234, verbose=False)
     model.add_priors(prior_baseline_coeffs=[1.0])
     model.add_likelihood()
-    model.sample()
+    model.sample(chains=2, cores=2)
     model.solve()
 
     # Sample single-component ordered model
@@ -73,8 +79,34 @@ def test_gauss_model():
     model = GaussModel(data, 1, baseline_degree=0, seed=1234, verbose=False)
     model.add_priors(ordered=True)
     model.add_likelihood()
-    model.sample()
+    model.sample(chains=2, cores=2)
     model.solve()
 
     # Test "auto" initialization strategy
     model.sample(init="auto")
+
+
+def test_gauss_noise_model():
+    # Simulate single-component model
+    noise = 1.0
+    spectral = np.linspace(-100.0, 100.0, 1000)
+    brightness = noise * _RNG.randn(1000)
+    data = {"observation": SpecData(spectral, brightness, noise)}
+    params = {
+        "line_area": [1000.0],
+        "fwhm": [25.0],
+        "velocity": [10.0],
+        "observation_baseline_norm": [0.0],
+        "rms_observation": noise,
+    }
+    model = GaussNoiseModel(data, 1, baseline_degree=0, seed=1234, verbose=False)
+    model.add_priors()
+    model.add_likelihood()
+    brightness = model.model["observation"].eval(params)
+
+    # Fit single-component model with VI
+    data = {"observation": SpecData(spectral, brightness, noise)}
+    model = GaussNoiseModel(data, 1, baseline_degree=0, seed=1234, verbose=False)
+    model.add_priors(prior_baseline_coeffs=[1.0])
+    model.add_likelihood()
+    model.fit()
