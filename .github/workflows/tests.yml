@@ -6,6 +6,7 @@ on:
     paths:
         - 'bayes_spec/**'
         - 'tests/**'
+        - '.github/workflows/tests.yml'
 
 jobs:
   build:
