@@ -521,7 +521,7 @@ class BaseModel(ABC):
 
             # divergences
             num_divergences = self.trace.sample_stats.diverging.sel(chain=self.good_chains()).data.sum()
-            if num_divergences > 0:
+            if num_divergences > 0:  # pragma: no cover
                 print(f"There were {num_divergences} divergences in converged chains.")
 
     def sample_smc(
