@@ -96,7 +96,7 @@ Internally, `SpecData` normalizes both the spectral axis and the data. Generally
 
 ## Model Specification
 
-Model specification is made though a class that extends the `bayes_spec.BaseModel` base model class definition. This class must include three methods: `__init__`, which initializes the model, and `add_priors`, which adds the priors to the model, and `add_likelihood`, which adds the likelihood to the model. These priors and likelihood are specified following the usual `pymc` syntax. [See the definition of `GaussLine` for an example.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_line.py) Alternatively, the class can extend an existing `bayes_spec` model, which is convenient for similar models with, for example, added complexity. [See the definition of `GaussLineNoise`, which extends `GaussLine`.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_line_noise.py) 
+Model specification is made though a class that extends the `bayes_spec.BaseModel` base model class definition. This class must include three methods: `__init__`, which initializes the model, and `add_priors`, which adds the priors to the model, and `add_likelihood`, which adds the likelihood to the model. These priors and likelihood are specified following the usual `pymc` syntax. [See the definition of `GaussModel` for an example.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_model.py) Alternatively, the class can extend an existing `bayes_spec` model, which is convenient for similar models with, for example, added complexity. [See the definition of `GaussNoiseModel`, which extends `GaussLine`.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_noise_model.py) 
 
 # Algorithms
 
@@ -132,7 +132,7 @@ It is also possible that the model solution is degenerate, the posterior distrib
 
 `GaussModel` is a Gaussian line profile model. The model assumes that the emission of each cloud is a Gaussian-shaped spectral line. The `SpecData` key must be `"observation"`. The following diagram demonstrates the relationship between the free parameters (empty ellipses), deterministic quantities (rectangles), model predictions (filled ellipses), and observations (filled, round rectangles). Many of the parameters are internally normalized (and thus have names like `_norm`). The subsequent tables describe the model parameters in more detail.
 
-![gauss model](docs/build/html/_images/notebooks_basic_tutorial_13_0.svg)
+![gauss model](https://bayes-spec.readthedocs.io/en/latest/_images/notebooks_basic_tutorial_13_0.svg)
 
 | Cloud Parameter<br>`variable` | Parameter                                   | Units      | Prior, where<br>($p_0, p_1, \dots$) = `prior_{variable}`         | Default<br>`prior_{variable}` |
 | :---------------------------- | :------------------------------------------ | :--------- | :--------------------------------------------------------------- | :---------------------------- |
@@ -145,7 +145,7 @@ It is also possible that the model solution is degenerate, the posterior distrib
 
 `GaussNoiseModel` extends `GaussModel` to add an additional free parameter: the spectral rms noise. The `SpecData` key must be `"observation"`.
 
-![gauss noise model](docs/build/html/_images/notebooks_basic_tutorial_noise_9_0.svg)
+![gauss noise model](https://bayes-spec.readthedocs.io/en/latest/_images/notebooks_basic_tutorial_noise_9_0.svg)
 
 | Hyper Parameter<br>`variable` | Parameter          | Units | Prior, where<br>($p_0, p_1, \dots$) = `prior_{variable}` | Default<br>`prior_{variable}` |
 | :---------------------------- | :----------------- | :---- | :------------------------------------------------------- | :---------------------------- |
@@ -153,9 +153,9 @@ It is also possible that the model solution is degenerate, the posterior distrib
 
 ## `ordered_velocity`
 
-An additional parameter to `set_priors` for these models is `ordered_velocity`. By default, this parameter is `False`, in which case the order of the clouds is from nearest to farthest. Sampling from these models can be challenging due to the labeling degeneracy: if the order of clouds does not matter (i.e., the emission is optically thin), then each Markov chain could decide on a different, equally-valid order of clouds.
+An additional parameter to `set_priors` for these models is `ordered_velocity`. By default, this parameter is `False`, in which case the order of the clouds is arbitrary. Sampling from these models can be challenging due to the labeling degeneracy: if the order of clouds does not matter (i.e., the emission is optically thin), then each Markov chain could decide on a different, equally-valid order of clouds.
 
-If we assume that the emission is optically thin, then we can set `ordered_velocity=True`, in which case the order of clouds is restricted to be increasing with velocity. This assumption can *drastically* improve sampling efficiency. When `ordered_velocity=True`, the `velocity` prior is defined differently:
+If we assume that the emission is optically thin (and thus the order of clouds really is arbitrary), then we can set `ordered_velocity=True`, in which case the order of clouds is restricted to be increasing with velocity. This assumption can *drastically* improve sampling efficiency. When `ordered_velocity=True`, the `velocity` prior is defined differently:
 
 | Cloud Parameter<br>`variable` | Parameter       | Units    | Prior, where<br>($p_0, p_1, \dots$) = `prior_{variable}`                 | Default<br>`prior_{variable}` |
 | :---------------------------- | :-------------- | :------- | :----------------------------------------------------------------------- | :---------------------------- |
