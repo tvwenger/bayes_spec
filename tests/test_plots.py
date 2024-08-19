@@ -62,5 +62,7 @@ def test_plots():
     model.solve()
     posterior = model.sample_posterior_predictive()
     assert isinstance(plot_predictive(model.data, posterior.posterior_predictive).ravel()[0], Axes)
-    assert isinstance(plot_pair(model.trace.solution_0, model.deterministics, labeller=model.labeller).ravel()[0], Axes)
-    assert isinstance(plot_traces(model.trace.solution_0, model.deterministics).ravel()[0], Axes)
+    assert isinstance(
+        plot_pair(model.trace.solution_0, model.cloud_deterministics, labeller=model.labeller).ravel()[0], Axes
+    )
+    assert isinstance(plot_traces(model.trace.solution_0, model.cloud_deterministics).ravel()[0], Axes)
