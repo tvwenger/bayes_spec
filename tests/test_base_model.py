@@ -35,9 +35,6 @@ _RNG = np.random.RandomState(seed=1234)
 class ModelA(BaseModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.cloud_params += ["x"]
-        self.hyper_params += ["y"]
-        self.deterministics += ["z"]
         self._cluster_features += ["x", "z"]
         self.var_name_map.update({"x": "X", "y": "Y", "z": "Z"})
 
@@ -51,7 +48,7 @@ class ModelB(ModelA):
         with self.model:
             x = pm.Normal("x", mu=0.0, sigma=1.0, dims="cloud")
             y = pm.Normal("y", mu=0.0, sigma=1.0)
-            _ = pm.Deterministic("z", x + y)
+            _ = pm.Deterministic("z", x + y, dims="cloud")
 
 
 class ModelC(ModelB):
@@ -62,7 +59,7 @@ class ModelC(ModelB):
         with self.model:
             _ = pm.Normal(
                 "observation",
-                mu=self.model["z"],
+                mu=np.ones_like(self.data["observation"].spectral) * self.model["z"].sum(),
                 sigma=self.data["observation"].noise,
                 observed=self.data["observation"].brightness,
             )
@@ -87,11 +84,21 @@ def test_attributes():
     data = {"observation": SpecData(spectral, brightness, 1.0)}
 
     model = ModelC(data, 2, baseline_degree=3, seed=1234, verbose=True)
+    model.add_priors()
+    with pytest.raises(ValueError):
+        model._validate()
+    model.add_likelihood()
     assert model.n_clouds == 2
     assert model.baseline_degree == 3
     assert model.seed == 1234
     assert model.verbose is True
     assert model.data == data
+    assert model.baseline_freeRVs == ["baseline_observation_norm"]
+    assert model.baseline_deterministics == []
+    assert model.cloud_freeRVs == ["x"]
+    assert model.cloud_deterministics == ["z"]
+    assert model.hyper_freeRVs == ["y"]
+    assert model.hyper_deterministics == []
     assert model._n_data == 1000
     assert model._n_params == 7
     with pytest.raises(ValueError):
@@ -99,5 +106,4 @@ def test_attributes():
     with pytest.raises(ValueError):
         _ = model.unique_solution
     assert isinstance(model.labeller, azl.MapLabeller)
-    with pytest.raises(ValueError):
-        model._validate()
+    assert model._validate()
