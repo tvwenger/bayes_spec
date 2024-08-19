@@ -38,7 +38,7 @@ def test_optimize():
         "line_area": [1000.0],
         "fwhm": [25.0],
         "velocity": [10.0],
-        "observation_baseline_norm": [0.0],
+        "baseline_observation_norm": [0.0],
     }
     model = GaussModel(data, 1, baseline_degree=0, seed=1234, verbose=True)
     model.add_priors()

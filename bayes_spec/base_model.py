@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Iterable
 
 import pymc as pm
 from pymc.variational.callbacks import CheckParametersConvergence
@@ -78,7 +78,7 @@ class BaseModel(ABC):
 
         # Initialize the model
         coords = {
-            "coeff": range(self.baseline_degree + 1),
+            "baseline_coeff": range(self.baseline_degree + 1),
             "cloud": range(self.n_clouds),
         }
         self._n_data = 0
@@ -86,17 +86,11 @@ class BaseModel(ABC):
             self._n_data += len(dataset.spectral)
         self.model = pm.Model(coords=coords)
 
-        # Model parameters
-        self.baseline_params = [f"{key}_baseline_norm" for key in self.data.keys()]
-        self.hyper_params = []
-        self.cloud_params = []
-        self.deterministics = []
-
         # Parameters used for posterior clustering
         self._cluster_features = []
 
         # Arviz labeller map
-        self.var_name_map = {f"{key}_baseline_norm": r"$\beta_{\rm " + key + r"}$" for key in self.data.keys()}
+        self.var_name_map = {f"baseline_{key}_norm": r"$\beta_{\rm " + key + r"}$" for key in self.data.keys()}
 
         # set results and convergence checks
         self.reset_results()
@@ -111,18 +105,83 @@ class BaseModel(ABC):
         """Must be defined in inhereted class."""
         pass
 
+    def _get_param_names(self, dim: Optional[str] = None, deterministics: bool = False) -> Iterable[str]:
+        """Get a subset of the model parameter names.
+
+        :param dims: Select only parameters with this dimension name. If None, select dimensionless parameters, defaults to None
+        :type dims: Optional[str], optional
+        :param deterministics: If True, select deterministic parameters, otherwise free parameters, defaults to False
+        :type deterministics: bool, optional
+        :return: Parameter names matching selection
+        :rtype: Iterable[str]
+        """
+        all_params = self.model.deterministics if deterministics else self.model.free_RVs
+        if dim is None:
+            return [param.name for param in all_params if param.name not in self.model.named_vars_to_dims]
+        return [param.name for param in all_params if dim in self.model.named_vars_to_dims.get(param.name, [])]
+
+    @property
+    def baseline_freeRVs(self) -> Iterable[str]:
+        """Get the free baseline parameter names.
+
+        :return: Free baseline parameter names
+        :rtype: Iterable[str]
+        """
+        return self._get_param_names("baseline_coeff", deterministics=False)
+
+    @property
+    def baseline_deterministics(self) -> Iterable[str]:
+        """Get the deterministic baseline parameter names.
+
+        :return: Deterministic baseline parameter names
+        :rtype: Iterable[str]
+        """
+        return self._get_param_names("baseline_coeff", deterministics=True)
+
+    @property
+    def cloud_freeRVs(self) -> Iterable[str]:
+        """Get the free cloud parameter names.
+
+        :return: Free cloud parameter names
+        :rtype: Iterable[str]
+        """
+        return self._get_param_names("cloud", deterministics=False)
+
+    @property
+    def cloud_deterministics(self) -> Iterable[str]:
+        """Get the deterministic cloud parameter names.
+
+        :return: Deterministic cloud parameter names
+        :rtype: Iterable[str]
+        """
+        return self._get_param_names("cloud", deterministics=True)
+
+    @property
+    def hyper_freeRVs(self) -> Iterable[str]:
+        """Get the free hyper parameter names.
+
+        :return: Free hyper parameter names
+        :rtype: Iterable[str]
+        """
+        return self._get_param_names(deterministics=False)
+
+    @property
+    def hyper_deterministics(self) -> Iterable[str]:
+        """Get the deterministic hyper parameter names.
+
+        :return: Deterministic hyper parameter names
+        :rtype: Iterable[str]
+        """
+        return self._get_param_names(deterministics=True)
+
     @property
     def _n_params(self) -> int:
-        """Determine the number of model parameters.
+        """Determine the number of free model parameters.
 
-        :return: Number of model parameters
+        :return: Number of free model parameters
         :rtype: int
         """
-        return (
-            len(self.cloud_params) * self.n_clouds
-            + len(self.baseline_params) * (self.baseline_degree + 1)
-            + len(self.hyper_params)
-        )
+        return np.sum(param.size.eval().prod() for param in self.model.free_RVs)
 
     @property
     def _get_unique_solution(self) -> int:
@@ -310,10 +369,10 @@ class BaseModel(ABC):
             for key in self.data.keys():
                 # add the normalized prior
                 _ = pm.Normal(
-                    f"{key}_baseline_norm",
+                    f"baseline_{key}_norm",
                     mu=0.0,
                     sigma=prior_baseline_coeffs[key],
-                    dims="coeff",
+                    dims="baseline_coeff",
                 )
 
     def predict_baseline(self) -> dict[str, list[float]]:
@@ -328,7 +387,7 @@ class BaseModel(ABC):
             # evaluate the baseline
             baseline_norm = pt.sum(
                 [
-                    self.model[f"{key}_baseline_norm"][i] / (i + 1.0) ** i * dataset.spectral_norm**i
+                    self.model[f"baseline_{key}_norm"][i] / (i + 1.0) ** i * dataset.spectral_norm**i
                     for i in range(self.baseline_degree + 1)
                 ],
                 axis=0,
