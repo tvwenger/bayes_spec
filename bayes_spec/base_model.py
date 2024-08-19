@@ -216,11 +216,13 @@ class BaseModel(ABC):
         """
         return azl.MapLabeller(var_name_map=self.var_name_map)
 
-    def _validate(self):
+    def _validate(self) -> bool:
         """Validate the model by checking the log probability at the initial point.
 
         :raises ValueError: Model does not contain likelihood
         :raises ValueError: Model likelihood fails to evaluate at the initial point
+        :return: True
+        :rtype: bool
         """
         # check that likelihood has been added
         if len(self.model.observed_RVs) == 0:
@@ -229,6 +231,8 @@ class BaseModel(ABC):
         # check that model can be evaluated
         if not np.isfinite(self.model.logp().eval(self.model.initial_point())):
             raise ValueError("Model initial point is not finite! Mis-specified model or bad priors?")
+
+        return True
 
     def reset_results(self):
         """Reset results and convergence checks."""
@@ -404,7 +408,7 @@ class BaseModel(ABC):
         :rtype: az.InferenceData
         """
         # validate
-        self._validate()
+        assert self._validate()
 
         with self.model:
             trace = pm.sample_prior_predictive(samples=samples, random_seed=self.seed)
@@ -428,7 +432,7 @@ class BaseModel(ABC):
         :rtype: az.InferenceData
         """
         # validate
-        self._validate()
+        assert self._validate()
 
         if self.trace is None:
             raise ValueError("Model has no posterior samples. Try fit() or sample().")
@@ -470,7 +474,7 @@ class BaseModel(ABC):
         :param `**kwargs`: Additional arguments passed to :func:`pymc.fit`
         """
         # validate
-        self._validate()
+        assert self._validate()
 
         # reset convergence checks
         self.reset_results()
@@ -514,7 +518,7 @@ class BaseModel(ABC):
         :param `**kwargs`: Additional arguments passed to :func:`pymc.sample`
         """
         # validate
-        self._validate()
+        assert self._validate()
 
         # reset convergence checks
         self.reset_results()
@@ -593,7 +597,7 @@ class BaseModel(ABC):
         """
 
         # validate
-        self._validate()
+        assert self._validate()
 
         # reset convergence checks
         self.reset_results()
@@ -633,7 +637,7 @@ class BaseModel(ABC):
             p_threshold=p_threshold,
             seed=self.seed,
         )
-        if len(solutions) < 1 and self.verbose:
+        if len(solutions) < 1 and self.verbose:  # pragma: no cover
             print("No solution found!")
 
         # convergence check

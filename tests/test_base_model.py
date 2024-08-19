@@ -59,7 +59,7 @@ class ModelC(ModelB):
         with self.model:
             _ = pm.Normal(
                 "observation",
-                mu=self.model["z"],
+                mu=np.ones_like(self.data["observation"].spectral) * self.model["z"].sum(),
                 sigma=self.data["observation"].noise,
                 observed=self.data["observation"].brightness,
             )
@@ -85,6 +85,8 @@ def test_attributes():
 
     model = ModelC(data, 2, baseline_degree=3, seed=1234, verbose=True)
     model.add_priors()
+    with pytest.raises(ValueError):
+        model._validate()
     model.add_likelihood()
     assert model.n_clouds == 2
     assert model.baseline_degree == 3
@@ -104,5 +106,4 @@ def test_attributes():
     with pytest.raises(ValueError):
         _ = model.unique_solution
     assert isinstance(model.labeller, azl.MapLabeller)
-    with pytest.raises(ValueError):
-        model._validate()
+    assert model._validate()
