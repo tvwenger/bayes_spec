@@ -44,21 +44,6 @@ class GaussModel(BaseModel):
         # Initialize BaseModel
         super().__init__(*args, **kwargs)
 
-        # Define (normalized) cloud free parameter names
-        self.cloud_params += [
-            "line_area_norm",
-            "fwhm_norm",
-            "velocity_norm",
-        ]
-
-        # Define deterministic quantities (including un-normalized parameters)
-        self.deterministics += [
-            "line_area",
-            "fwhm",
-            "velocity",
-            "amplitude",
-        ]
-
         # Select features used for posterior clustering
         self._cluster_features += [
             "velocity",

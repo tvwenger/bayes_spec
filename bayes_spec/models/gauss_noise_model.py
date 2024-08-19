@@ -41,16 +41,6 @@ class GaussNoiseModel(GaussModel):
         # Initialize BaseModel
         super().__init__(*args, **kwargs)
 
-        # Define (normalized) hyper-parameter names
-        self.hyper_params += [
-            "rms_observation_norm",
-        ]
-
-        # Define deterministic quantities (including un-normalized parameters)
-        self.deterministics += [
-            "rms_observation",
-        ]
-
         # Define TeX representation of each parameter
         self.var_name_map.update(
             {
