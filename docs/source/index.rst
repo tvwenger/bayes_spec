@@ -10,6 +10,8 @@ Installation
 ============
 .. code-block::
     
+    conda create --name bayes_spec -c conda-forge pymc pip
+    conda activate bayes_spec
     pip install bayes_spec
 
 .. toctree::
