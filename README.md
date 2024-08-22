@@ -36,8 +36,10 @@ Read below to get started, and check out the tutorials here: https://bayes-spec.
 
 ## Basic Installation
 
-Install with pip:
+Install with `pip` in a `conda` virtual environment:
 ```
+conda create --name bayes_spec -c conda-forge pymc pip
+conda activate bayes_spec
 pip install bayes_spec
 ```
 
