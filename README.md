@@ -9,7 +9,7 @@ A Bayesian Spectral Line Modeling Framework for Astrophysics
 
 `bayes_spec` is a framework for user-defined, cloud-based models of astrophysical systems (e.g., the interstellar medium) that enables spectral line simulation and statistical inference. Built in the [`pymc` probabilistic programming library](https://www.pymc.io/welcome.html), `bayes_spec` uses Monte Carlo Markov Chain techniques to fit user-defined models to data. The user-defined models can be a simple line profile (e.g., a Gaussian profile) or a complicated physical model. The models are "cloud-based", meaning there can be multiple "clouds" or "components" each with a unique set of the model parameters. `bayes_spec` includes algorithms to estimate the optimal number of components in a given dataset.
 
-Read below to get started, and check out the tutorials here: https://bayes-spec.readthedocs.io.
+Read below to get started, and check out the tutorials and guides here: https://bayes-spec.readthedocs.io.
 
 - [Installation](#installation)
   - [Basic Installation](#basic-installation)
