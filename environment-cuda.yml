@@ -5,8 +5,7 @@ channels:
   - defaults
 dependencies:
   - ipython
-  - jupyter_contrib_nbextensions
-  - jupyter_nbextensions_configurator
+  - jupyter
   - ipywidgets
   - versioneer
   - black
