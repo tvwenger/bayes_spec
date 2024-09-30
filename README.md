@@ -4,6 +4,7 @@
 ![tests](https://github.com/tvwenger/bayes_spec/actions/workflows/tests.yml/badge.svg)
 [![codecov](https://codecov.io/github/tvwenger/bayes_spec/graph/badge.svg?token=XNGOS4M6TZ)](https://codecov.io/github/tvwenger/bayes_spec)
 [![Documentation Status](https://readthedocs.org/projects/bayes-spec/badge/?version=latest)](https://bayes-spec.readthedocs.io/en/latest/?badge=latest)
+[![status](https://joss.theoj.org/papers/ac05a353639c3268883cae19ca6a9cf9/status.svg)](https://joss.theoj.org/papers/ac05a353639c3268883cae19ca6a9cf9)
 
 A Bayesian Spectral Line Modeling Framework for Astrophysics
 
