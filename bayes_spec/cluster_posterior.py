@@ -26,8 +26,7 @@ from typing import Iterable
 import arviz as az
 import numpy as np
 import xarray
-from scipy.stats import chi2, mode
-from scipy.spatial.distance import mahalanobis
+from scipy.stats import mode
 from sklearn.mixture import GaussianMixture
 
 
@@ -35,31 +34,39 @@ def cluster_posterior(
     trace: az.InferenceData,
     n_clusters: int,
     cluster_features: Iterable[str],
-    p_threshold: float = 0.9,
+    num_gmm_samples: float = 10_000,
+    kl_div_threshold: float = 0.1,
     seed: int = 1234,
 ) -> list:
-    """Fit Gaussian Mixture Models (GMM) to the posterior samples in order to (1)
-    identify unique solutions and (2) solve the labeling degeneracy.
+    """Identify unique solutions and break the labeling degeneracy. To do so, we
+    (1) fit a Gaussian Mixture Model (GMM) to the posterior samples of each chain individually.
+    (2) calculate the Kullback–Leibler (KL) divergence (mean log-likelihood ratio) between
+    chains. If the KD divergence is smaller than the given threshold, then both chains are
+    part of the same solution. Otherwise, then each chain belongs to a different solution.
+    The KL divergence is calculated from samples drawn from the fitted GMMs following the
+    Monte Carlo procedure of Hershey & Olson (2007)
+    (3) solve the labeling degeneracy by identifying the most common order of components
+    among chains in each solution.
 
-    :param trace: Posterior samples
+    :param trace: Trace with posterior samples and log likelihood samples
     :type trace: az.InferenceData
     :param n_clusters: Number of GMM clusters
     :type n_clusters: int
     :param cluster_features: Parameter names to use for clustering
     :type cluster_features: Iterable[str]
-    :param p_threshold: p-value threshold for unique solution identification, defaults to 0.9
-    :type p_threshold: float, optional
+    :param num_gmm_samples: Number of samples to generate from GMM, defaults to 10_000
+    :type num_gmm_samples: int, optional
+    :param kl_div_threshold: Kullback-Liebler (KL) divergence threshold, defaults to 0.1
+    :type kl_div_threshold: float, optional
     :param seed: Random seed, defaults to 1234
     :type seed: int, optional
     :return: Solutions, where each element is a dictionary containing posterior samples and other statistics
     :rtype: list
     """
-    # Determine if a chain prefers a unique solution suggested by
-    # a significant difference between a GMM fit to only this chain compared
-    # to the GMM of previous solutions
-    solutions = []
-    for chain in trace.chain.data:
-        features = np.array([trace[param].sel(chain=chain).data.flatten() for param in cluster_features]).T
+    # Fit GMMs to posterior samples of each chain, generate samples from GMMs
+    gmm_results = {}
+    for chain in trace.posterior.chain.data:
+        features = np.array([trace.posterior[param].sel(chain=chain).data.flatten() for param in cluster_features]).T
         gmm = GaussianMixture(
             n_components=n_clusters,
             max_iter=100,
@@ -69,53 +76,49 @@ def cluster_posterior(
             random_state=seed,
         )
         gmm.fit(features)
+        gmm_results[chain] = {"gmm": gmm, "samples": gmm.sample(num_gmm_samples)}
 
-        # Calculate multivariate z-score between this GMM and other
-        # solution means to determine if this is a unique solution.
-        # Each GMM could have a different label order, so we compare all
-        # combinations of solution GMM cluster and this GMM cluster
-        for solution in solutions:
-            # cluster_zscore shape (solution clusters, GMM clusters)
-            cluster_zscore = np.ones((n_clusters, n_clusters)) * np.nan
-            for sol_cluster in range(n_clusters):
-                for gmm_cluster in range(n_clusters):
-                    # The z-score for MVnormal is mahalanobis distance
-                    cov = solution["gmm"].covariances_[sol_cluster] + gmm.covariances_[gmm_cluster]
-                    inv_cov = np.linalg.inv(cov)
-                    zscore = mahalanobis(
-                        solution["gmm"].means_[sol_cluster],
-                        gmm.means_[gmm_cluster],
-                        inv_cov,
-                    )
-                    cluster_zscore[sol_cluster, gmm_cluster] = zscore
+    # Evaluate pair-wise KL divergence
+    for chain1 in trace.posterior.chain.data:
+        gmm_results[chain1]["kl_div"] = {}
+        samples = gmm_results[chain1]["samples"]
+        lnlike1 = gmm_results[chain1]["gmm"].score(samples)
+        for chain2 in trace.posterior.chain.data:
+            lnlike2 = gmm_results[chain2]["gmm"].score(samples)
+            gmm_results[chain1]["kl_div"][chain2] = np.mean(lnlike1 - lnlike2)
 
-            # calculate significance from z-score
-            matched = cluster_zscore**2.0 < chi2.ppf(p_threshold, df=len(cluster_features))
+    # Group unique solutions based on KL divergence
+    solutions = []
+    assigned_chains = []
+    for chain1 in trace.posterior.chain.data:
+        # skip if this chain is already assigned
+        if chain1 in assigned_chains:
+            continue
 
-            # if all GMM clusters are matched to a solution
-            # cluster, then this is NOT a unique solution
-            if np.all(np.any(matched, axis=0)):
-                # adopt GMM labeling from matched solution
-                labels = solution["gmm"].predict(features).reshape(-1, n_clusters)
-                label_order = mode(labels, axis=0).mode
+        # identify chains within KL divergence threshold
+        good_kl_div_chains = [
+            ch
+            for ch, kl_div in gmm_results[chain1]["kl_div"]
+            if kl_div < kl_div_threshold and ch not in assigned_chains
+        ]
 
-                # ensure all labels present
-                if len(np.unique(label_order)) == len(label_order):
-                    solution["label_orders"][chain] = label_order
-                    break
+        # skip if fewer than two chains are assigned to this solution
+        if len(good_kl_div_chains) < 2:
+            continue
 
-        # Otherwise, this is a unique solution
-        else:
-            labels = gmm.predict(features).reshape(-1, n_clusters)
+        # these chains are now assigned
+        assigned_chains += good_kl_div_chains
+
+        # get label order of each chain based on this chain's GMM
+        solution = {"label_orders": {}}
+        for chain2 in good_kl_div_chains:
+            features = np.array([trace[param].sel(chain=chain2).data.flatten() for param in cluster_features]).T
+            labels = gmm_results[chain1]["gmm"].predict(features).reshape(-1, n_clusters)
             label_order = mode(labels, axis=0).mode
 
-            # ensure all labels present+
+            # ensure all labels present
             if len(np.unique(label_order)) == len(label_order):
-                solution = {
-                    "gmm": gmm,
-                    "label_orders": {chain: label_order},
-                }
-                solutions.append(solution)
+                solution["label_orders"][chain2] = label_order
 
     # Each solution now has the labeling degeneracy broken, in that
     # each cloud has been assigned to a unique GMM cluster. We must

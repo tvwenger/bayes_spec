@@ -287,24 +287,15 @@ class BaseModel(ABC):
         if chain is None and solution is None:
             solution = self._get_unique_solution
 
-        # posterior samples
+        # likelihood samples
         if chain is None:
-            trace = self.trace[f"solution_{solution}"]
-        else:
-            trace = self.trace.posterior.sel(chain=chain)
+            chain = self.trace[f"solution_{solution}"].chain
+        lnlike = self.trace["log_likelihood"].sel(chain=chain)
 
-        # RV names and transformations
-        params = {}
-        for rv in self.model.free_RVs:
-            name = rv.name
-            param = self.model.rvs_to_values[rv]
-            transform = self.model.rvs_to_transforms[rv]
-            if transform is None:
-                params[param] = trace[name].data
-            else:
-                params[param] = transform.forward(trace[name].data, *rv.owner.inputs).eval()
-
-        return float(np.mean(self.model.logp().eval(params)))
+        spec_dims = [f"{key}_dim_0" for key in self.data.keys()]
+        spec_sum_lnlike = lnlike.sum(dim=spec_dims)
+        sum_lnlike = np.sum([spec_sum_lnlike[key] for key in self.data.keys()], axis=0)
+        return np.mean(sum_lnlike)
 
     def bic(self, chain: Optional[int] = None, solution: Optional[int] = None) -> float:
         """Calculate the Bayesian information criterion at the mean point estimate.
@@ -543,6 +534,12 @@ class BaseModel(ABC):
                 **kwargs,
             )
 
+        # add log-likelihood to trace
+        if self.verbose:
+            print("Adding log-likelihood to trace")
+        with frozen_model:
+            pm.compute_log_likelihood(self.trace)
+
         # diagnostics
         if self.verbose:
             # divergences
@@ -572,10 +569,16 @@ class BaseModel(ABC):
                 **kwargs,
             )
 
+        # add log-likelihood to trace
+        if self.verbose:
+            print("Adding log-likelihood to trace")
+        with self.model:
+            pm.compute_log_likelihood(self.trace, progressbar=self.verbose)
+
     def solve(self, p_threshold: float = 0.9):
-        """Cluster posterior samples, determine unique solutions, and break the labeling degeneracy.
-        Adds new groups to the `trace` called `solution_{idx}` with the clustered posterior samples
-        of each unique solution.
+        """Identify unique solutions and break the labeling degeneracy.
+        Adds new groups to the `trace` called `solution_{idx}` with the label-corrected posterior
+        samples of each unique solution.
 
         :param p_threshold: p-value threshold for unique solutions, defaults to 0.9
         :type p_threshold: float, optional
@@ -587,7 +590,7 @@ class BaseModel(ABC):
 
         self.solutions = []
         solutions = cluster_posterior(
-            self.trace.posterior,
+            self.trace,
             self.n_clouds,
             self._cluster_features,
             p_threshold=p_threshold,
