@@ -119,7 +119,10 @@ def cluster_posterior(
             # ensure all labels present
             if len(np.unique(label_order)) == len(label_order):
                 solution["label_orders"][chain2] = label_order
-        solutions.append(solution)
+
+        # save solution only if at least two chains have all labels present
+        if len(solution["label_orders"]) >= 2:
+            solutions.append(solution)
 
     # Each solution now has the labeling degeneracy broken, in that
     # each cloud has been assigned to a unique GMM cluster. We must
