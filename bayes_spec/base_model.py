@@ -453,6 +453,9 @@ class BaseModel(ABC):
             )
             self.trace = self.approx.sample(draws)
 
+        with self.model:
+            pm.compute_log_likelihood(self.trace)
+
     def sample(
         self,
         init: str = "advi+adapt_diag",
