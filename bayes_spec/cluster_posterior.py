@@ -76,7 +76,7 @@ def cluster_posterior(
             random_state=seed,
         )
         gmm.fit(features)
-        gmm_results[chain] = {"gmm": gmm, "samples": gmm.sample(num_gmm_samples)}
+        gmm_results[chain] = {"gmm": gmm, "samples": gmm.sample(num_gmm_samples)[0]}
 
     # Evaluate pair-wise KL divergence
     for chain1 in trace.chain.data:
