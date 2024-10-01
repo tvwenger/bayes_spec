@@ -98,7 +98,7 @@ def cluster_posterior(
         # identify chains within KL divergence threshold
         good_kl_div_chains = [
             ch
-            for ch, kl_div in gmm_results[chain1]["kl_div"]
+            for ch, kl_div in gmm_results[chain1]["kl_div"].items()
             if kl_div < kl_div_threshold and ch not in assigned_chains
         ]
 
