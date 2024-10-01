@@ -48,13 +48,13 @@ def cluster_posterior(
     (3) solve the labeling degeneracy by identifying the most common order of components
     among chains in each solution.
 
-    :param trace: Trace with posterior samples and log likelihood samples
+    :param trace: Posterior samples
     :type trace: az.InferenceData
     :param n_clusters: Number of GMM clusters
     :type n_clusters: int
     :param cluster_features: Parameter names to use for clustering
     :type cluster_features: Iterable[str]
-    :param num_gmm_samples: Number of samples to generate from GMM, defaults to 10_000
+    :param num_gmm_samples: Number of samples to generate from Gaussian Mixture Model (GMM), defaults to 10_000
     :type num_gmm_samples: int, optional
     :param kl_div_threshold: Kullback-Liebler (KL) divergence threshold, defaults to 0.1
     :type kl_div_threshold: float, optional
@@ -65,8 +65,8 @@ def cluster_posterior(
     """
     # Fit GMMs to posterior samples of each chain, generate samples from GMMs
     gmm_results = {}
-    for chain in trace.posterior.chain.data:
-        features = np.array([trace.posterior[param].sel(chain=chain).data.flatten() for param in cluster_features]).T
+    for chain in trace.chain.data:
+        features = np.array([trace[param].sel(chain=chain).data.flatten() for param in cluster_features]).T
         gmm = GaussianMixture(
             n_components=n_clusters,
             max_iter=100,
@@ -79,18 +79,18 @@ def cluster_posterior(
         gmm_results[chain] = {"gmm": gmm, "samples": gmm.sample(num_gmm_samples)}
 
     # Evaluate pair-wise KL divergence
-    for chain1 in trace.posterior.chain.data:
+    for chain1 in trace.chain.data:
         gmm_results[chain1]["kl_div"] = {}
         samples = gmm_results[chain1]["samples"]
         lnlike1 = gmm_results[chain1]["gmm"].score(samples)
-        for chain2 in trace.posterior.chain.data:
+        for chain2 in trace.chain.data:
             lnlike2 = gmm_results[chain2]["gmm"].score(samples)
             gmm_results[chain1]["kl_div"][chain2] = np.mean(lnlike1 - lnlike2)
 
     # Group unique solutions based on KL divergence
     solutions = []
     assigned_chains = []
-    for chain1 in trace.posterior.chain.data:
+    for chain1 in trace.chain.data:
         # skip if this chain is already assigned
         if chain1 in assigned_chains:
             continue
@@ -126,9 +126,6 @@ def cluster_posterior(
     good_solutions = []
     for solution in solutions:
         label_orders = np.array([label_order for label_order in solution["label_orders"].values()])
-        # no chains have unique feature labels, abort!
-        # if len(label_orders) == 0:
-        #     continue
         unique_label_orders, counts = np.unique(
             label_orders,
             axis=0,

@@ -575,13 +575,15 @@ class BaseModel(ABC):
         with self.model:
             pm.compute_log_likelihood(self.trace, progressbar=self.verbose)
 
-    def solve(self, p_threshold: float = 0.9):
+    def solve(self, num_gmm_samples: float = 10_000, kl_div_threshold: float = 0.1):
         """Identify unique solutions and break the labeling degeneracy.
         Adds new groups to the `trace` called `solution_{idx}` with the label-corrected posterior
         samples of each unique solution.
 
-        :param p_threshold: p-value threshold for unique solutions, defaults to 0.9
-        :type p_threshold: float, optional
+        :param num_gmm_samples: Number of samples to generate from Gaussian Mixture Model (GMM), defaults to 10_000
+        :type num_gmm_samples: int, optional
+        :param kl_div_threshold: Kullback-Liebler (KL) divergence threshold, defaults to 0.1
+        :type kl_div_threshold: float, optional
         """
         # Drop solutions if they already exist in trace
         for group in list(self.trace.groups()):
@@ -590,27 +592,34 @@ class BaseModel(ABC):
 
         self.solutions = []
         solutions = cluster_posterior(
-            self.trace,
+            self.trace.posterior,
             self.n_clouds,
             self._cluster_features,
-            p_threshold=p_threshold,
+            num_gmm_samples=num_gmm_samples,
+            kl_div_threshold=kl_div_threshold,
             seed=self.seed,
         )
         if len(solutions) < 1 and self.verbose:  # pragma: no cover
             print("No solution found!")
 
-        # convergence check
+        # convergence checks
         unique_solution = len(solutions) == 1
         if self.verbose:
             if unique_solution:
                 print("GMM converged to unique solution")
-            else:  # pragma: no cover
+            elif len(solutions) > 1:  # pragma: no cover
                 print(f"GMM found {len(solutions)} unique solutions")
                 for solution_idx, solution in enumerate(solutions):
                     print(f"Solution {solution_idx}: chains {list(solution['label_orders'].keys())}")
 
-        # labeling degeneracy check
+        assigned_chains = []
+        for solution in solutions:
+            assigned_chains += list(solution["label_orders"].keys())
+        if self.verbose and len(assigned_chains) < len(self.trace.posterior.chain):
+            print(f"{len(assigned_chains)} of {len(self.trace.posterior.chain)} chains appear converged.")
+
         for solution_idx, solution in enumerate(solutions):
+            # report labeling degeneracy
             label_orders = np.array([label_order for label_order in solution["label_orders"].values()])
             if self.verbose and not np.all(label_orders == label_orders[0]):  # pragma: no cover
                 print(f"Label order mismatch in solution {solution_idx}")
