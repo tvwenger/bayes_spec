@@ -239,7 +239,6 @@ class BaseModel(ABC):
         self.approx: pm.Approximation = None
         self.trace: az.InferenceData = None
         self.solutions: list = None
-        self._good_chains: list = None
         self._chains_converged: bool = None
 
     def graph(self) -> graphviz.sources.Source:
@@ -273,26 +272,26 @@ class BaseModel(ABC):
         n_params = len(self.data) * (self.baseline_degree + 1)
         return n_params * np.log(self._n_data) - 2.0 * lnlike
 
-    def lnlike_mean_point_estimate(self, chain: Optional[int] = None, solution: Optional[int] = None) -> float:
-        """Evaluate model log-likelihood at the mean point estimate of posterior samples.
+    def mean_lnlike(self, chain: Optional[int] = None, solution: Optional[int] = None) -> float:
+        """Evaluate mean log-likelihood over posterior samples.
 
-        :param chain: Evaluate log-likelihood for this chain using un-clustered posterior samples. If `None` evaluate
+        :param chain: Evaluate mean log-likelihood for this chain using un-clustered posterior samples. If `None` evaluate
             across all chains using clustered posterior samples, defaults to None
         :type chain: Optional[int], optional
-        :param solution: Evaluate log-likelihood for this solution. If `None` use the unique solution if any.
+        :param solution: Evaluate mean log-likelihood for this solution. If `None` use the unique solution if any.
             If :param:chain is not None, this parameter has no effect, defaults to None
         :type solution: Optional[int], optional
-        :return: Log-likelihood at the mean point estimate
+        :return: Mean log-likelihood over posterior samples
         :rtype: float
         """
         if chain is None and solution is None:
             solution = self._get_unique_solution
 
-        # mean point estimate
+        # posterior samples
         if chain is None:
-            point = self.trace[f"solution_{solution}"].mean(dim=["chain", "draw"])
+            trace = self.trace[f"solution_{solution}"]
         else:
-            point = self.trace.posterior.sel(chain=chain).mean(dim=["draw"])
+            trace = self.trace.posterior.sel(chain=chain)
 
         # RV names and transformations
         params = {}
@@ -301,11 +300,11 @@ class BaseModel(ABC):
             param = self.model.rvs_to_values[rv]
             transform = self.model.rvs_to_transforms[rv]
             if transform is None:
-                params[param] = point[name].data
+                params[param] = trace[name].data
             else:
-                params[param] = transform.forward(point[name].data, *rv.owner.inputs).eval()
+                params[param] = transform.forward(trace[name].data, *rv.owner.inputs).eval()
 
-        return float(self.model.logp().eval(params))
+        return float(np.mean(self.model.logp().eval(params)))
 
     def bic(self, chain: Optional[int] = None, solution: Optional[int] = None) -> float:
         """Calculate the Bayesian information criterion at the mean point estimate.
@@ -320,42 +319,11 @@ class BaseModel(ABC):
         :rtype: float
         """
         try:
-            lnlike = self.lnlike_mean_point_estimate(chain=chain, solution=solution)
+            lnlike = self.mean_lnlike(chain=chain, solution=solution)
             return self._n_params * np.log(self._n_data) - 2.0 * lnlike
         except ValueError as e:  # pragma: no cover
             print(e)
             return np.inf
-
-    def good_chains(self, mad_threshold: float = 10.0) -> list:
-        """Identify bad chains as those with deviant BICs.
-
-        :param mad_threshold: Chains are good if they have BICs within :param:mad_threshold times the median
-            absolute deviation (across all chains) of the median BIC, defaults to 10.0
-        :type mad_threshold: float, optional
-        :raises ValueError: There are no posterior samples.
-        :return: Good chain indicies
-        :rtype: list
-        """
-        if self.trace is None:
-            raise ValueError("Model has no posterior samples. Try fit() or sample().")
-
-        # check if already determined
-        if self._good_chains is not None:
-            return self._good_chains
-
-        # if the trace has fewer than 2 chains, we assume they're both ok so we can run
-        # convergence diagnostics
-        if len(self.trace.posterior.chain) < 3:
-            self._good_chains = self.trace.posterior.chain.data
-            return self._good_chains
-
-        # per-chain BIC
-        bics = np.array([self.bic(chain=chain) for chain in self.trace.posterior.chain.data])
-        mad = np.median(np.abs(bics - np.median(bics)))
-        good = np.abs(bics - np.median(bics)) < mad_threshold * mad
-
-        self._good_chains = self.trace.posterior.chain.data[good]
-        return self._good_chains
 
     def add_baseline_priors(self, prior_baseline_coeffs: Optional[dict[str, list[float]]] = None):
         """Add baseline priors to the model. The polynomial baseline is evaluated on the normalized data like:
@@ -439,7 +407,7 @@ class BaseModel(ABC):
 
         with self.model:
             if solution is None:
-                posterior = self.trace.posterior.sel(chain=self.good_chains(), draw=slice(None, None, thin))
+                posterior = self.trace.posterior.sel(draw=slice(None, None, thin))
             else:
                 posterior = self.trace[f"solution_{solution}"].sel(draw=slice(None, None, thin))
             trace = pm.sample_posterior_predictive(
@@ -577,13 +545,8 @@ class BaseModel(ABC):
 
         # diagnostics
         if self.verbose:
-            # converged chains
-            good_chains = self.good_chains()
-            if len(good_chains) < len(self.trace.posterior.chain):
-                print(f"Only {len(good_chains)} chains appear converged.")
-
             # divergences
-            num_divergences = self.trace.sample_stats.diverging.sel(chain=self.good_chains()).data.sum()
+            num_divergences = self.trace.sample_stats.diverging.data.sum()
             if num_divergences > 0:  # pragma: no cover
                 print(f"There were {num_divergences} divergences in converged chains.")
 
@@ -609,13 +572,6 @@ class BaseModel(ABC):
                 **kwargs,
             )
 
-        # diagnostics
-        if self.verbose:
-            # converged chains
-            good_chains = self.good_chains()
-            if len(good_chains) < len(self.trace.posterior.chain):  # pragma: no cover
-                print(f"Only {len(good_chains)} chains appear converged.")
-
     def solve(self, p_threshold: float = 0.9):
         """Cluster posterior samples, determine unique solutions, and break the labeling degeneracy.
         Adds new groups to the `trace` called `solution_{idx}` with the clustered posterior samples
@@ -631,7 +587,7 @@ class BaseModel(ABC):
 
         self.solutions = []
         solutions = cluster_posterior(
-            self.trace.posterior.sel(chain=self.good_chains()),
+            self.trace.posterior,
             self.n_clouds,
             self._cluster_features,
             p_threshold=p_threshold,
