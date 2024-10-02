@@ -29,7 +29,7 @@ Read below to get started, and check out the tutorials and guides here: https://
   - [`bayes_spec.models.GaussNoiseModel`](#bayes_specmodelsgaussnoisemodel)
   - [`ordered_velocity`](#ordered_velocity)
 - [Syntax \& Examples](#syntax--examples)
-- [Issues and Contributing](#issues-and-contributing)
+- [Feedback, Issues, and Contributing](#feedback-issues-and-contributing)
 - [License and Copyright](#license-and-copyright)
 
 
@@ -168,10 +168,13 @@ If we assume that the emission is optically thin (and thus the order of clouds r
 
 See the various tutorial notebooks under [docs/source/notebooks](https://github.com/tvwenger/bayes_spec/tree/main/docs/source/notebooks). Tutorials and the full API are available here: https://bayes-spec.readthedocs.io.
 
-# Issues and Contributing
+# Feedback, Issues, and Contributing
 
-Anyone is welcome to submit issues or contribute to the development
-of this software via [GitHub](https://github.com/tvwenger/bayes_spec).
+If you have questions about `bayes_spec`, then please consider starting a [discussion on GitHub](https://github.com/tvwenger/bayes_spec/discussions).
+
+Should you find any issues or encounter any problems with `bayes_spec`, then please submit an [issue on GitHub](https://github.com/tvwenger/bayes_spec/issues).
+
+Anyone is welcome to contribute to the development of `bayes_spec` via [GitHub](https://github.com/tvwenger/bayes_spec). Please consider submitting a pull request for any bug fixes or new features!
 
 # License and Copyright
 
