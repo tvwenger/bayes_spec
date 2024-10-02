@@ -228,7 +228,7 @@ class Optimize:
         model_bics = list(bics.values())
         best_idx = np.where(model_bics < (np.nanmin(model_bics) + bic_threshold))[0]
         if len(best_idx) == 0:
-            if self.verbose:
+            if self.verbose:  # pragma: no cover
                 print("No good models found!")
         else:
             best_n_clouds = n_clouds[best_idx[0]]
