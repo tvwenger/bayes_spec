@@ -108,6 +108,12 @@ def test_attributes():
     assert isinstance(model.labeller, azl.MapLabeller)
     assert model._validate()
 
+    baseline_params = {
+        "baseline_observation_norm": [0.0, 0.0, 0.0, 0.0],
+    }
+    baseline_model = model.predict_baseline(baseline_params=baseline_params)
+    assert len(baseline_model["observation"].eval()) == len(spectral)
+
     # regression test for #24
     prior_baseline_coeffs = {"observation": [0.0]}
     with pytest.raises(ValueError):

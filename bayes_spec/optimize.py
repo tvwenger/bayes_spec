@@ -80,6 +80,36 @@ class Optimize:
             )
         self.best_model = None
 
+    @property
+    def null_bic(self) -> float:
+        """Evaluate the Bayesian Information Criterion for the null hypothesis (baseline only, no clouds)
+
+        :return: Null hypothesis BIC
+        :rtype: float
+        """
+        return self.models[1].null_bic()
+
+    @property
+    def bics(self) -> dict[int, float]:
+        """Return the Bayesian Information Criteria for the best solution of each model.
+
+        :return: BIC for each model, indexed by the number of clouds
+        :rtype: dict[int, float]
+        """
+        model_bics = {0: self.null_bic}
+        for n_cloud, model in self.models.items():
+            best_solution_bic = np.inf
+            # VI does not have solution, only single "chain"
+            if model.solutions is None or len(model.solutions) == 0:
+                best_solution_bic = model.bic(chain=[0])
+            else:
+                for solution in model.solutions:
+                    solution_bic = model.bic(solution=solution)
+                    if solution_bic < best_solution_bic:
+                        best_solution_bic = solution_bic
+            model_bics[n_cloud] = best_solution_bic
+        return model_bics
+
     def add_priors(self, *args, **kwargs):
         """Add priors to the models
 
@@ -193,27 +223,23 @@ class Optimize:
             self.sample_all(**sample_kwargs)
 
         # get best model
-        best_solution_bics = []
-        for n_cloud in self.n_clouds:
-            if approx:
-                best_solution_bics.append(self.models[n_cloud].bic(chain=[0]))
-            else:
-                best_solution_bic = np.inf
-                for solution in self.models[n_cloud].solutions:
-                    solution_bic = self.models[n_cloud].bic(solution=solution)
-                    if solution_bic < best_solution_bic:
-                        best_solution_bic = solution_bic
-                best_solution_bics.append(best_solution_bic)
-        model_bics = np.array(best_solution_bics)
-        best_n_clouds = self.n_clouds[np.where(model_bics < (np.nanmin(model_bics) + bic_threshold))[0][0]]
-        self.best_model = self.models[best_n_clouds]
+        bics = self.bics
+        n_clouds = list(bics.keys())
+        model_bics = list(bics.values())
+        best_idx = np.where(model_bics < (np.nanmin(model_bics) + bic_threshold))[0]
+        if len(best_idx) == 0:
+            if self.verbose:  # pragma: no cover
+                print("No good models found!")
+        else:
+            best_n_clouds = n_clouds[best_idx[0]]
+            self.best_model = self.models[best_n_clouds]
 
-        if approx:
-            # sample best
-            if self.verbose:
-                print(f"Sampling best model (n_cloud = {self.best_model.n_clouds})...")
-            if smc:
-                self.best_model.sample_smc(**sample_kwargs)
-            else:
-                self.best_model.sample(**sample_kwargs)
-            self.best_model.solve()
+            if approx:
+                # sample best
+                if self.verbose:
+                    print(f"Sampling best model (n_cloud = {self.best_model.n_clouds})...")
+                if smc:
+                    self.best_model.sample_smc(**sample_kwargs)
+                else:
+                    self.best_model.sample(**sample_kwargs)
+                self.best_model.solve()

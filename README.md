@@ -109,11 +109,11 @@ Model specification is made though a class that extends the `bayes_spec.BaseMode
 
 ## Posterior Sampling: MCMC
 
-`bayes_spec` can also use MCMC to sample the posterior distribution. MCMC sampling tends to be much slower but also more accurate. Draw posterior samples using MCMC via `model.sample()`. Since `bayes_spec` uses `pymc` for sampling, several `pymc` samplers are available, including GPU samplers (see ["other samplers" example notebook](https://github.com/tvwenger/bayes_spec/tree/main/examples)).
+`bayes_spec` can also use MCMC to sample the posterior distribution. MCMC sampling tends to be much slower but also more accurate. Draw posterior samples using MCMC via `model.sample()`. Since `bayes_spec` uses `pymc` for sampling, several `pymc` samplers are available, including GPU samplers (see ["other samplers" example notebook](https://bayes-spec.readthedocs.io/en/latest/notebooks/other_samplers.html)).
 
 ## Posterior Sampling: SMC
 
-Finally, `bayes_spec` implements Sequential Monte Carlo (SMC) sampling via `model.sample_smc()`. SMC can significantly improve performance for degenerate models with multi-modal posterior distributions, although it struggles with high dimensional models and models that suffer from a strong labeling degeneracy (see ["other samplers" example notebook]((https://github.com/tvwenger/bayes_spec/tree/main/examples))).
+Finally, `bayes_spec` implements Sequential Monte Carlo (SMC) sampling via `model.sample_smc()`. SMC can significantly improve performance for degenerate models with multi-modal posterior distributions, although it struggles with high dimensional models and models that suffer from a strong labeling degeneracy (see ["other samplers" example notebook](https://bayes-spec.readthedocs.io/en/latest/notebooks/other_samplers.html)).
 
 ## Posterior Clustering: Gaussian Mixture Models
 
@@ -171,7 +171,7 @@ See the various tutorial notebooks under [docs/source/notebooks](https://github.
 # Issues and Contributing
 
 Anyone is welcome to submit issues or contribute to the development
-of this software via [Github](https://github.com/tvwenger/bayes_spec).
+of this software via [GitHub](https://github.com/tvwenger/bayes_spec).
 
 # License and Copyright
 

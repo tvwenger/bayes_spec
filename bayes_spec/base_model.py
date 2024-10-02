@@ -343,19 +343,26 @@ class BaseModel(ABC):
                     dims="baseline_coeff",
                 )
 
-    def predict_baseline(self) -> dict[str, list[float]]:
+    def predict_baseline(self, baseline_params: Optional[dict[str, list[float]]] = None) -> dict[str, list[float]]:
         """Predict the un-normalized baseline model.
 
+        :param baseline_params: Dictionary of baseline parameters with which to evaluate the baseline model.
+        Keys are the same as in the model: "baseline_{key}_norm", where {key} are the supplied datasets. The
+        values are lists of length `baseline_degree+1`. If None, evaluate the baseline model using the current
+        model state, defaults to None
+        :type baseline_params: Optional[dict[str, list[float]]], optional
         :return: Un-normalized baseline models for each dataset. Keys are dataset names and values are
             the un-normalized baseline models.
         :rtype: dict[str, list[float]]
         """
+        if baseline_params is None:
+            baseline_params = self.model
         baseline_model = {}
         for key, dataset in self.data.items():
             # evaluate the baseline
             baseline_norm = pt.sum(
                 [
-                    self.model[f"baseline_{key}_norm"][i] / (i + 1.0) ** i * dataset.spectral_norm**i
+                    baseline_params[f"baseline_{key}_norm"][i] / (i + 1.0) ** i * dataset.spectral_norm**i
                     for i in range(self.baseline_degree + 1)
                 ],
                 axis=0,

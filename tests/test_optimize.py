@@ -72,6 +72,8 @@ def test_optimize():
         smc=False,
     )
     assert opt.best_model.n_clouds == 1
+    assert opt.null_bic == opt.models[1].null_bic()
+    assert len(opt.bics) == 3
 
     # MCMC only
     opt.optimize(
