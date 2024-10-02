@@ -15,6 +15,7 @@ Read below to get started, and check out the tutorials and guides here: https://
 - [Installation](#installation)
   - [Basic Installation](#basic-installation)
   - [Development Installation](#development-installation)
+- [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Data Format](#data-format)
   - [Model Specification](#model-specification)
@@ -56,6 +57,58 @@ conda env create -f environment.yml
 # conda env create -f environment-cuda.yml
 conda activate bayes_spec-dev
 pip install -e .
+```
+
+# Quick Start
+
+Here we demonstrate how to use `bayes_spec` to fit a simple Gaussian line profile model to a synthetic spectrum. For more details, see the [Usage](#usage) section as well as the [documentation and tutorials](https://readthedocs.org/projects/bayes-spec/badge/?version=latest).
+
+```python
+# Generate "dummy" data structure
+import numpy as np
+from bayes_spec import SpecData
+
+velocity_axis = np.linspace(-250.0, 250.0, 501)
+noise = 1.0
+brightness_data = noise * np.random.randn(len(velocity_axis))
+observation = SpecData(velocity_axis, brightness_data, noise)
+dummy_data = {"observation": observation}
+
+# Prepare a three cloud GaussLine model with polynomial baseline degree = 2
+from bayes_spec.models import GaussModel
+
+model = GaussModel(dummy_data, n_clouds=3, baseline_degree=2)
+model.add_priors()
+model.add_likelihood()
+
+# Evaluate the model for a given set of parameters to generate a synthetic "observation"
+sim_brightness = model.model.observation.eval({
+    "fwhm": [25.0, 40.0, 35.0], # FWHM line width (km/s)
+    "line_area": [250.0, 125.0, 175.0], # line area (K km/s)
+    "velocity": [-35.0, 10.0, 55.0], # velocity (km/s)
+    "baseline_observation_norm": [-0.5, -2.0, 3.0], # normalized baseline coefficients
+})
+observation = SpecData(velocity_axis, sim_brightness, noise)
+data = {"observation": observation}
+
+# Initialize the model with the synthetic observation
+model = GaussModel(data, n_clouds=3, baseline_degree=2)
+model.add_priors()
+model.add_likelihood()
+
+# Draw posterior samples via MCMC
+model.sample()
+
+# Solve labeling degeneracy
+model.solve()
+
+# visualize posterior distribution
+from bayes_spec.plots import plot_pair
+plot_pair(model.trace.solution_0, model.cloud_deterministics, labeller=model.labeller)
+
+# get posterior summary statistics
+import arviz as az
+az.summary(model.trace.solution_0)
 ```
 
 # Usage
