@@ -112,4 +112,4 @@ def test_attributes():
         "baseline_observation_norm": [0.0, 0.0, 0.0, 0.0],
     }
     baseline_model = model.predict_baseline(baseline_params=baseline_params)
-    assert len(baseline_model["observation"]) == len(spectral)
+    assert len(baseline_model["observation"].eval()) == len(spectral)
