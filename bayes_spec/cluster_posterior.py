@@ -106,9 +106,6 @@ def cluster_posterior(
         if len(good_kl_div_chains) < 2:
             continue
 
-        # these chains are now assigned
-        assigned_chains += good_kl_div_chains
-
         # get label order of each chain based on this chain's GMM
         solution = {"label_orders": {}}
         for chain2 in good_kl_div_chains:
@@ -123,6 +120,9 @@ def cluster_posterior(
         # save solution only if at least two chains have all labels present
         if len(solution["label_orders"]) >= 2:
             solutions.append(solution)
+
+            # these chains are now assigned
+            assigned_chains += list(solution["label_orders"].keys())
 
     # Each solution now has the labeling degeneracy broken, in that
     # each cloud has been assigned to a unique GMM cluster. We must
