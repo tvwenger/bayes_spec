@@ -109,5 +109,6 @@ def test_attributes():
     assert model._validate()
 
     # regression test for #24
+    prior_baseline_coeffs = {"observation": [0.0]}
     with pytest.raises(ValueError):
-        model.add_priors(prior_baseline_coeffs=[0.0])
+        model.add_priors(prior_baseline_coeffs=prior_baseline_coeffs)
