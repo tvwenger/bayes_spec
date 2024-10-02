@@ -43,8 +43,8 @@ class ModelB(ModelA):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def add_priors(self):
-        super().add_baseline_priors()
+    def add_priors(self, prior_baseline_coeffs=None):
+        super().add_baseline_priors(prior_baseline_coeffs=prior_baseline_coeffs)
         with self.model:
             x = pm.Normal("x", mu=0.0, sigma=1.0, dims="cloud")
             y = pm.Normal("y", mu=0.0, sigma=1.0)
@@ -113,3 +113,8 @@ def test_attributes():
     }
     baseline_model = model.predict_baseline(baseline_params=baseline_params)
     assert len(baseline_model["observation"].eval()) == len(spectral)
+
+    # regression test for #24
+    prior_baseline_coeffs = {"observation": [0.0]}
+    with pytest.raises(ValueError):
+        model.add_priors(prior_baseline_coeffs=prior_baseline_coeffs)
