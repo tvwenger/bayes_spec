@@ -181,7 +181,7 @@ class BaseModel(ABC):
         :return: Number of free model parameters
         :rtype: int
         """
-        return np.sum(param.size.eval().prod() for param in self.model.free_RVs)
+        return np.sum([param.size.eval().prod() for param in self.model.free_RVs])
 
     @property
     def _get_unique_solution(self) -> int:
