@@ -60,8 +60,6 @@ def test_gauss_model():
     assert isinstance(model.graph(), graphviz.sources.Source)
     assert isinstance(model.sample_prior_predictive(), az.InferenceData)
     with pytest.raises(ValueError):
-        model.good_chains()
-    with pytest.raises(ValueError):
         model.sample_posterior_predictive()
 
     # Model with NaN data

@@ -110,14 +110,9 @@ class Optimize:
             if self.verbose:
                 print(f"Approximating n_cloud = {n_cloud} posterior...")
             self.models[n_cloud].fit(**kwargs)
-            self.models[n_cloud].solve()
             if self.verbose:
-                for solution in self.models[n_cloud].solutions:
-                    print(
-                        f"n_cloud = {n_cloud} "
-                        + f"solution = {solution} "
-                        + f"BIC = {self.models[n_cloud].bic(solution=solution):.3e}"
-                    )
+                bic = self.models[n_cloud].bic(chain=[0])
+                print(f"n_cloud = {n_cloud} BIC = {bic:.3e}")
                 print()
 
     def sample_all(self, **kwargs):
@@ -198,12 +193,18 @@ class Optimize:
             self.sample_all(**sample_kwargs)
 
         # get best model
-        model_bics = np.array(
-            [
-                (self.models[n_cloud].bic(solution=0) if len(self.models[n_cloud].solutions) > 0 else np.inf)
-                for n_cloud in self.n_clouds
-            ]
-        )
+        best_solution_bics = []
+        for n_cloud in self.n_clouds:
+            if approx:
+                best_solution_bics.append(self.models[n_cloud].bic(chain=[0]))
+            else:
+                best_solution_bic = np.inf
+                for solution in self.models[n_cloud].solutions:
+                    solution_bic = self.models[n_cloud].bic(solution=solution)
+                    if solution_bic < best_solution_bic:
+                        best_solution_bic = solution_bic
+                best_solution_bics.append(best_solution_bic)
+        model_bics = np.array(best_solution_bics)
         best_n_clouds = self.n_clouds[np.where(model_bics < (np.nanmin(model_bics) + bic_threshold))[0][0]]
         self.best_model = self.models[best_n_clouds]
 

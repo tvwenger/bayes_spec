@@ -56,10 +56,10 @@ def test_optimize():
         "learning_rate": 1e-2,
     }
     sample_kwargs = {
-        "chains": 2,
-        "cores": 2,
-        "tune": 100,
-        "draws": 100,
+        "chains": 4,
+        "cores": 4,
+        "tune": 500,
+        "draws": 500,
         "init_kwargs": fit_kwargs,
         "nuts_kwargs": {"target_accept": 0.8},
     }
@@ -82,8 +82,8 @@ def test_optimize():
 
     # VI + SMC
     sample_kwargs = {
-        "chains": 2,
-        "draws": 100,
+        "chains": 4,
+        "draws": 500,
     }
     opt.optimize(
         fit_kwargs=fit_kwargs,
