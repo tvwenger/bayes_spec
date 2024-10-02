@@ -107,3 +107,9 @@ def test_attributes():
         _ = model.unique_solution
     assert isinstance(model.labeller, azl.MapLabeller)
     assert model._validate()
+
+    baseline_params = {
+        "baseline_observation_norm": [0.0, 0.0, 0.0, 0.0],
+    }
+    baseline_model = model.predict_baseline(baseline_params=baseline_params)
+    assert len(baseline_model["observation"].eval()) == len(spectral)
