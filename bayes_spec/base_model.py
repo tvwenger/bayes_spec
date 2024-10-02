@@ -327,6 +327,11 @@ class BaseModel(ABC):
         """
         if prior_baseline_coeffs is None:
             prior_baseline_coeffs = {key: [1.0] * (self.baseline_degree + 1) for key in self.data.keys()}
+        for key, coeffs in prior_baseline_coeffs.items():
+            if len(coeffs) != self.baseline_degree + 1:
+                raise ValueError(
+                    f"{key} baseline coefficient prior must have length `baseline_degree+1` = {self.baseline_degree + 1}"
+                )
 
         with self.model:
             for key in self.data.keys():
