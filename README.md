@@ -115,7 +115,7 @@ az.summary(model.trace.solution_0)
 
 `bayes_spec` assumes that the source of spectral line emission can be decomposed into a series of "clouds" or "components", each of which are defined by a *unique* set of model parameters. For a simple line profile model (like a Gaussian profile), these parameters might be the Gaussian amplitude, center velocity, and line width. For a more complicated model, they might be the optical depth, excitation temperature, and velocity of the cloud. `bayes_spec` also supports hyper-parameters: parameters that influence both non-cloud based features in the data (e.g., spectral baseline structure) as well as overall cloud properties (e.g., a property assumed shared among all clouds) or physical relationships (e.g., an empirical scaling law).
 
-*Users are responsible for defining and testing their models.* Here we briefly describe how to do this, but see [Syntax \& Examples](#syntax--examples) for some practical demonstrations.
+*Users are responsible for defining and testing their models.* Here we briefly describe how to do this, but see [Syntax \& Examples](#syntax--examples) for some practical demonstrations. Additional tips and tricks can be found in the documentation: https://bayes-spec.readthedocs.io/en/stable/tips.html
 
 Users must specify the following:
 
@@ -152,7 +152,9 @@ Internally, `SpecData` normalizes both the spectral axis and the data. Generally
 
 ## Model Specification
 
-Model specification is made though a class that extends the `bayes_spec.BaseModel` base model class definition. This class must include three methods: `__init__`, which initializes the model, and `add_priors`, which adds the priors to the model, and `add_likelihood`, which adds the likelihood to the model. These priors and likelihood are specified following the usual `pymc` syntax. [See the definition of `GaussModel` for an example.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_model.py) Alternatively, the class can extend an existing `bayes_spec` model, which is convenient for similar models with, for example, added complexity. [See the definition of `GaussNoiseModel`, which extends `GaussLine`.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_noise_model.py) 
+Model specification is made though a class that extends the `bayes_spec.BaseModel` base model class definition. This class must include three methods: `__init__`, which initializes the model, and `add_priors`, which adds the priors to the model, and `add_likelihood`, which adds the likelihood to the model. These priors and likelihood are specified following the usual `pymc` syntax. [See the definition of `GaussModel` for an example.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_model.py) Alternatively, the class can extend an existing `bayes_spec` model, which is convenient for similar models with, for example, added complexity. [See the definition of `GaussNoiseModel`, which extends `GaussLine`.](https://github.com/tvwenger/bayes_spec/blob/main/bayes_spec/models/gauss_noise_model.py)
+
+A step-by-step guide for creating `bayes_spec` models can be found in the documentation: https://bayes-spec.readthedocs.io/en/stable/models.html
 
 # Algorithms
 
