@@ -1,23 +1,23 @@
 {
-  "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
-  "@type": "Code",
-  "author": [
-    {
-      "@id": "https://orcid.org/0000-0003-0640-7787",
-      "@type": "Person",
-      "email": "tvwenger@gmail.com",
-      "name": "Trey Wenger",
-      "affiliation": "University of Wisconsin-Madison"
-    }
-  ],
-  "identifier": "",
-  "codeRepository": "https://github.com/tvwenger/bayes_spec",
-  "datePublished": "2024-08-15",
-  "dateModified": "2024-08-15",
-  "dateCreated": "2024-08-15",
-  "description": "A Bayesian Spectral Line Modeling Framework for Astrophysics",
-  "keywords": "Python, astronomy, astrophysics, spectroscopy, Bayesian models",
-  "license": "GPL v3.0",
-  "title": "bayes_spec",
-  "version": ""
+    "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+    "@type": "Code",
+    "author": [
+        {
+            "@id": "https://orcid.org/0000-0003-0640-7787",
+            "@type": "Person",
+            "email": "tvwenger@gmail.com",
+            "name": "Trey Wenger",
+            "affiliation": "University of Wisconsin-Madison"
+        }
+    ],
+    "identifier": "",
+    "codeRepository": "https://github.com/tvwenger/bayes_spec",
+    "datePublished": "2024-08-15",
+    "dateModified": "2024-08-15",
+    "dateCreated": "2024-08-15",
+    "description": "A Bayesian Spectral Line Modeling Framework for Astrophysics",
+    "keywords": "Python, astronomy, astrophysics, spectroscopy, Bayesian models",
+    "license": "MIT",
+    "title": "bayes_spec",
+    "version": ""
 }
