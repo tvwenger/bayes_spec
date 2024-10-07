@@ -69,9 +69,8 @@ def test_gauss_model():
     model.add_priors(prior_baseline_coeffs=[1.0])
     model.add_likelihood()
     model.sample(
-        n_init=1000,
-        tune=100,
-        draws=100,
+        tune=1000,
+        draws=1000,
         chains=4,
         cores=4,
         init_kwargs={"rel_tolerance": 0.01, "abs_tolerance": 0.1, "learning_rate": 1e-2},
