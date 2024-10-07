@@ -113,6 +113,21 @@ def test_gauss_model():
     # Sample with blackjax
     model.sample(nuts_sampler="blackjax", tune=100, draws=100)
 
+    # Regression tests for https://github.com/tvwenger/bayes_spec/issues/43
+    model = GaussModel(data, 1, baseline_degree=0, seed=1234, verbose=True)
+    with pytest.raises(ValueError):
+        model.add_priors(prior_line_area=[1.0, 1.0])
+    with pytest.raises(ValueError):
+        model.add_priors(prior_fwhm=[1.0, 1.0])
+    with pytest.raises(ValueError):
+        model.add_priors(prior_velocity=10.0)
+    with pytest.raises(ValueError):
+        model.add_priors(prior_velocity=[10.0])
+    with pytest.raises(ValueError):
+        model.add_priors(prior_baseline_coeffs=0.0)
+    with pytest.raises(ValueError):
+        model.add_priors(prior_baseline_coeffs={"observation": [1.0, 2.0, 3.0]})
+
 
 def test_gauss_noise_model():
     # Simulate single-component model
@@ -138,3 +153,8 @@ def test_gauss_noise_model():
     model.add_priors(prior_baseline_coeffs=[1.0])
     model.add_likelihood()
     model.fit(rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)
+
+    # Regression tests for https://github.com/tvwenger/bayes_spec/issues/43
+    model = GaussNoiseModel(data, 1, baseline_degree=0, seed=1234, verbose=True)
+    with pytest.raises(ValueError):
+        model.add_priors(prior_rms=[1.0, 1.0])

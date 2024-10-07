@@ -75,10 +75,20 @@ class GaussModel(BaseModel):
         :param ordered: If True, assume ordered velocities, defaults to False
         :type ordered: bool
         """
+        # check inputs
+        if not isinstance(prior_line_area, float):
+            raise ValueError("prior_line_area must be a number")
+        if not isinstance(prior_fwhm, float):
+            raise ValueError("prior_fwhm must be a number")
+        if not isinstance(prior_velocity, list) or len(prior_velocity) != 2:
+            raise ValueError("prior_velocity must be a list of two numbers")
         if prior_baseline_coeffs is not None:
-            prior_baseline_coeffs = {"observation": prior_baseline_coeffs}
+            if not isinstance(prior_baseline_coeffs, list) or len(prior_baseline_coeffs) != self.baseline_degree + 1:
+                raise ValueError("prior_baseline_coeffs must be a list of length baseline_degree + 1")
 
         # add polynomial baseline priors
+        if prior_baseline_coeffs is not None:
+            prior_baseline_coeffs = {"observation": prior_baseline_coeffs}
         super().add_baseline_priors(prior_baseline_coeffs=prior_baseline_coeffs)
 
         with self.model:

@@ -50,6 +50,10 @@ class GaussNoiseModel(GaussModel):
         # Add GaussLine priors
         super().add_priors(**kwargs)
 
+        # check inputs
+        if not isinstance(prior_rms, float):
+            raise ValueError("prior_rms must be a number")
+
         # Add additional priors
         with self.model:
             # Spectral rms (K)
