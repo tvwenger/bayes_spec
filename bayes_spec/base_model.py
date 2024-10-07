@@ -333,9 +333,9 @@ class BaseModel(ABC):
         """Predict the un-normalized baseline model.
 
         :param baseline_params: Dictionary of baseline parameters with which to evaluate the baseline model.
-        Keys are the same as in the model: "baseline_{key}_norm", where {key} are the supplied datasets. The
-        values are lists of length `baseline_degree+1`. If None, evaluate the baseline model using the current
-        model state, defaults to None
+            Keys are the same as in the model: "baseline_{key}_norm", where {key} are the supplied datasets. The
+            values are lists of length `baseline_degree+1`. If None, evaluate the baseline model using the current
+            model state, defaults to None
         :type baseline_params: Optional[dict[str, list[float]]], optional
         :return: Un-normalized baseline models for each dataset. Keys are dataset names and values are
             the un-normalized baseline models.
