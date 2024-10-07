@@ -6,6 +6,7 @@ channels:
 dependencies:
   - ipython
   - jupyter
+  - ipykernel
   - ipywidgets
   - versioneer
   - black
@@ -22,7 +23,7 @@ dependencies:
   - scikit-learn
   - graphviz
   - nvidia::cuda-toolkit
-  - jaxlib==0.4.28[cuda]
-  - jax==0.4.28
+  - jaxlib[cuda]
+  - jax
   - blackjax
   - numpyro
