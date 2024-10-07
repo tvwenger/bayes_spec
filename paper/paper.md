@@ -22,9 +22,9 @@ bibliography: paper.bib
 
 The study of the interstellar medium (ISM) -- the stuff between the stars -- relies heavily on the tools of spectroscopy. Spectral line observations of atoms, ions, and molecules in the ISM reveal the physical conditions and kinematics of the emitting gas. Robust and efficient numerical techniques are thus necessary for inferring the physical conditions of the ISM from observed spectral line data.
 
-# Statement of need
-
 `bayes_spec` is a Bayesian spectral line modeling framework for astrophysics. Given a user-defined model and some data, `bayes_spec` enables inference on the model parameters through different numerical techniques, such as Monte Carlo Markov Chain (MCMC) methods, implemented in the `pymc` probabilistic programming library [@pymc2023]. The API for `bayes_spec` is designed to support astrophysical researchers who wish to "fit" arbitrary, user-defined models, such as simple spectral line profile models or complicated physical models that include a full physical treatment of radiative transfer. These models are "cloud-based", meaning that the spectral line data is decomposed into a series of discrete clouds with parameters defined by the user's model. Importantly, `bayes_spec` provides algorithms to determine the optimal number of clouds for a given model and dataset.
+
+# Statement of need
 
 Bayesian models of spectral line observations are rare in astrophysics. Physical inference is typically achieved through inverse modeling: the spectral line data are decomposed into Gaussian components, and then the physical parameters are inferred from the fitted Gaussian parameters under numerous assumptions. For example, such is the strategy of `gausspy` [@lindner2015], `ROHSA` [@marchal2019], `pyspeckit` [@ginsburg2022], and `MWYDYN` [@rigby2024]. This strategy suffers from two problems: (1) the degeneracies of Gaussian decomposition and (2) the assumptions of the inverse model. Bayesian forward models, like those enabled by `bayes_spec`, can overcome both of these limitations: (1) prior knowledge about the physical conditions can reduce the space of possible solutions, and (2) all assumptions are clearly built into the model rather than being applied *a priori*.
 
