@@ -61,7 +61,7 @@ pip install -e .
 
 # Quick Start
 
-Here we demonstrate how to use `bayes_spec` to fit a simple Gaussian line profile model to a synthetic spectrum. For more details, see the [Usage](#usage) section as well as the [documentation and tutorials](https://readthedocs.org/projects/bayes-spec/badge/?version=latest).
+Here we demonstrate how to use `bayes_spec` to fit a simple Gaussian line profile model to a synthetic spectrum. For more details, see the [Usage](#usage) section as well as the [documentation and tutorials](https://bayes-spec.readthedocs.io).
 
 ```python
 # Generate "dummy" data structure
@@ -162,11 +162,11 @@ Model specification is made though a class that extends the `bayes_spec.BaseMode
 
 ## Posterior Sampling: MCMC
 
-`bayes_spec` can also use MCMC to sample the posterior distribution. MCMC sampling tends to be much slower but also more accurate. Draw posterior samples using MCMC via `model.sample()`. Since `bayes_spec` uses `pymc` for sampling, several `pymc` samplers are available, including GPU samplers (see ["other samplers" example notebook](https://bayes-spec.readthedocs.io/en/latest/notebooks/other_samplers.html)).
+`bayes_spec` can also use MCMC to sample the posterior distribution. MCMC sampling tends to be much slower but also more accurate. Draw posterior samples using MCMC via `model.sample()`. Since `bayes_spec` uses `pymc` for sampling, several `pymc` samplers are available, including GPU samplers (see ["other samplers" example notebook](https://bayes-spec.readthedocs.io/en/stable/notebooks/other_samplers.html)).
 
 ## Posterior Sampling: SMC
 
-Finally, `bayes_spec` implements Sequential Monte Carlo (SMC) sampling via `model.sample_smc()`. SMC can significantly improve performance for degenerate models with multi-modal posterior distributions, although it struggles with high dimensional models and models that suffer from a strong labeling degeneracy (see ["other samplers" example notebook](https://bayes-spec.readthedocs.io/en/latest/notebooks/other_samplers.html)).
+Finally, `bayes_spec` implements Sequential Monte Carlo (SMC) sampling via `model.sample_smc()`. SMC can significantly improve performance for degenerate models with multi-modal posterior distributions, although it struggles with high dimensional models and models that suffer from a strong labeling degeneracy (see ["other samplers" example notebook](https://bayes-spec.readthedocs.io/en/stable/notebooks/other_samplers.html)).
 
 ## Posterior Clustering: Gaussian Mixture Models
 
@@ -188,7 +188,7 @@ It is also possible that the model solution is degenerate, the posterior distrib
 
 `GaussModel` is a Gaussian line profile model. The model assumes that the emission of each cloud is a Gaussian-shaped spectral line. The `SpecData` key must be `"observation"`. The following diagram demonstrates the relationship between the free parameters (empty ellipses), deterministic quantities (rectangles), model predictions (filled ellipses), and observations (filled, round rectangles). Many of the parameters are internally normalized (and thus have names like `_norm`). The subsequent tables describe the model parameters in more detail.
 
-![gauss model](https://bayes-spec.readthedocs.io/en/latest/_images/notebooks_basic_tutorial_13_0.svg)
+![gauss model](https://bayes-spec.readthedocs.io/en/stable/_images/notebooks_basic_tutorial_13_0.svg)
 
 | Cloud Parameter<br>`variable` | Parameter                                   | Units      | Prior, where<br>($p_0, p_1, \dots$) = `prior_{variable}`         | Default<br>`prior_{variable}` |
 | :---------------------------- | :------------------------------------------ | :--------- | :--------------------------------------------------------------- | :---------------------------- |
@@ -201,7 +201,7 @@ It is also possible that the model solution is degenerate, the posterior distrib
 
 `GaussNoiseModel` extends `GaussModel` to add an additional free parameter: the spectral rms noise. The `SpecData` key must be `"observation"`.
 
-![gauss noise model](https://bayes-spec.readthedocs.io/en/latest/_images/notebooks_basic_tutorial_noise_9_0.svg)
+![gauss noise model](https://bayes-spec.readthedocs.io/en/stable/_images/notebooks_basic_tutorial_noise_9_0.svg)
 
 | Hyper Parameter<br>`variable` | Parameter          | Units | Prior, where<br>($p_0, p_1, \dots$) = `prior_{variable}` | Default<br>`prior_{variable}` |
 | :---------------------------- | :----------------- | :---- | :------------------------------------------------------- | :---------------------------- |
