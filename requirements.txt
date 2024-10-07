@@ -1,3 +1,6 @@
+jupyter
+ipykernel
+ipywidgets
 numpy
 pymc>=5
 pytensor
@@ -8,7 +11,7 @@ matplotlib
 scipy
 scikit-learn
 graphviz
-jaxlib==0.4.28
-jax==0.4.28
+jaxlib
+jax
 blackjax
 numpyro

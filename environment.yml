@@ -5,6 +5,7 @@ channels:
 dependencies:
   - ipython
   - jupyter
+  - ipykernel
   - ipywidgets
   - versioneer
   - black
@@ -21,8 +22,8 @@ dependencies:
   - scipy
   - scikit-learn
   - graphviz
-  - jaxlib==0.4.28
-  - jax==0.4.28
+  - jaxlib
+  - jax
   - blackjax
   - numpyro
 
