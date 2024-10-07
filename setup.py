@@ -14,6 +14,6 @@ setup(
     packages=find_packages(),
     install_requires=install_requires,
     python_requires=">=3.11",
-    license="GNU General Public License v3 (GPLv3)",
+    license="MIT",
     url="https://github.com/tvwenger/bayes_spec",
 )
