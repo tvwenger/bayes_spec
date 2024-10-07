@@ -97,42 +97,20 @@ class GaussModel(BaseModel):
             line_area = pm.Deterministic("line_area", prior_line_area * line_area_norm, dims="cloud")
 
             # FWHM line width per cloud
-            fwhm_norm = pm.Gamma(
-                "fwhm_norm",
-                alpha=2.0,
-                beta=1.0,
-                dims="cloud",
-            )
+            fwhm_norm = pm.Gamma("fwhm_norm", alpha=2.0, beta=1.0, dims="cloud")
             fwhm = pm.Deterministic("fwhm", prior_fwhm * fwhm_norm, dims="cloud")
 
             # Centroid velocity per cloud
             if ordered:
                 velocity_norm = pm.Gamma("velocity_norm", alpha=2.0, beta=1.0, dims="cloud")
                 velocity_offset = velocity_norm * prior_velocity[1]
-                _ = pm.Deterministic(
-                    "velocity",
-                    prior_velocity[0] + pm.math.cumsum(velocity_offset),
-                    dims="cloud",
-                )
+                _ = pm.Deterministic("velocity", prior_velocity[0] + pm.math.cumsum(velocity_offset), dims="cloud")
             else:
-                velocity_norm = pm.Normal(
-                    "velocity_norm",
-                    mu=0.0,
-                    sigma=1.0,
-                    dims="cloud",
-                )
-                _ = pm.Deterministic(
-                    "velocity",
-                    prior_velocity[0] + prior_velocity[1] * velocity_norm,
-                    dims="cloud",
-                )
+                velocity_norm = pm.Normal("velocity_norm", mu=0.0, sigma=1.0, dims="cloud")
+                _ = pm.Deterministic("velocity", prior_velocity[0] + prior_velocity[1] * velocity_norm, dims="cloud")
 
             # Deterministic amplitude per cloud
-            _ = pm.Deterministic(
-                "amplitude",
-                line_area / fwhm / np.sqrt(np.pi / (4.0 * np.log(2.0))),
-                dims="cloud",
-            )
+            _ = pm.Deterministic("amplitude", line_area / fwhm / np.sqrt(np.pi / (4.0 * np.log(2.0))), dims="cloud")
 
     def predict(self) -> Iterable[float]:
         """Predict observed spectrum from model parameters.

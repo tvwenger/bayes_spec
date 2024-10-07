@@ -18,6 +18,7 @@ Installation
     :maxdepth: 2
     :caption: Guides:
 
+    models
     tips
 
 .. toctree::
