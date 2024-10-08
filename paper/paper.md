@@ -32,23 +32,25 @@ Bayesian models of spectral line observations are rare in astrophysics. Physical
 
 # Usage
 
-Here we demonstrate how to use `bayes_spec` to fit a simple Gaussian line profile model to a synthetic spectrum. For more details, see the [documentation and tutorials](https://readthedocs.org/projects/bayes-spec/badge/?version=latest).
+Here we demonstrate how to use `bayes_spec` to fit a simple Gaussian line profile model to a synthetic spectrum. For more details, see the [documentation and tutorials](https://bayes-spec.readthedocs.io).
 
 ```python
-# Generate "dummy" data structure
+# Generate data structure
 import numpy as np
 from bayes_spec import SpecData
 
-velocity_axis = np.linspace(-250.0, 250.0, 501)
-noise = 1.0
-brightness_data = noise * np.random.randn(len(velocity_axis))
-observation = SpecData(velocity_axis, brightness_data, noise)
-dummy_data = {"observation": observation}
+velocity_axis = np.linspace(-250.0, 250.0, 501) # km s-1
+noise = 1.0 # K
+brightness_data = noise * np.random.randn(len(velocity_axis)) # K
+observation = SpecData(velocity_axis, brightness_data, noise,
+                       xlabel="Brightness Temperature $T_B$ (K)",
+                       ylabel="LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$")
+data = {"observation": observation}
 
 # Prepare a three cloud GaussLine model with polynomial baseline degree = 2
 from bayes_spec.models import GaussModel
 
-model = GaussModel(dummy_data, n_clouds=3, baseline_degree=2)
+model = GaussModel(data, n_clouds=3, baseline_degree=2)
 model.add_priors()
 model.add_likelihood()
 
@@ -59,7 +61,11 @@ sim_brightness = model.model.observation.eval({
     "velocity": [-35.0, 10.0, 55.0], # velocity (km/s)
     "baseline_observation_norm": [-0.5, -2.0, 3.0], # normalized baseline coefficients
 })
-observation = SpecData(velocity_axis, sim_brightness, noise)
+
+# Pack data structure with synthetic "observation"
+observation = SpecData(velocity_axis, sim_brightness, noise,
+                       xlabel="Brightness Temperature $T_B$ (K)",
+                       ylabel="LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$")
 data = {"observation": observation}
 
 # Initialize the model with the synthetic observation
@@ -73,13 +79,30 @@ model.sample()
 # Solve labeling degeneracy
 model.solve()
 
+# Draw posterior predictive samples
+from bayes_spec.plots import plot_predictive
+
+posterior = model.sample_posterior_predictive(thin=100)
+axes = plot_predictive(model.data, posterior.posterior_predictive)
+# axes.ravel()[0].figure.show()
+axes.ravel()[0].figure.savefig("posterior_predictive.png")
+
 # visualize posterior distribution
 from bayes_spec.plots import plot_pair
-plot_pair(model.trace.solution_0, model.cloud_deterministics, labeller=model.labeller)
+
+axes = plot_pair(model.trace.solution_0, model.cloud_deterministics, labeller=model.labeller)
+# axes.ravel()[0].figure.show()
+axes.ravel()[0].figure.savefig("posterior_pair.png")
 
 # get posterior summary statistics
 import arviz as az
-az.summary(model.trace.solution_0)
+
+print(az.summary(model.trace.solution_0))
 ```
+
+![Posterior predictive samples for a three-cloud `GaussLine` model fit to a synthetic spectrum. The black line represents the synthetic spectrum, and each colored line is one posterior predictive sample.](posterior_predictive.png)
+
+
+![gauss model](https://bayes-spec.readthedocs.io/en/stable/_images/notebooks_basic_tutorial_13_0.svg)
 
 # References
