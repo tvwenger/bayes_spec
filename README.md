@@ -129,9 +129,13 @@ import arviz as az
 print(az.summary(model.trace.solution_0))
 ```
 
-![Posterior predictive samples for a three-cloud `GaussLine` model fit to a synthetic spectrum. The black line represents the synthetic spectrum, and each colored line is one posterior predictive sample.](posterior_predictive.png)
+![posterior predictive](paper/posterior_predictive.png)
 
-![Projections of the posterior distribution for a three-cloud `GaussLine` model fit to a synthetic spectrum. The free model parameters are the integrated line area, $\int T_B dV$, the full-width at half-maximum line width, $\Delta V$, and the line-center velocity, $V_{\rm LSR}$. The line amplitude, $T_B$, is a derived quantity. The three posterior modes correspond to the three clouds in this model.](posterior_pair.png)
+Posterior predictive samples for a three-cloud `GaussLine` model fit to a synthetic spectrum. The black line represents the synthetic spectrum, and each colored line is one posterior predictive sample.
+
+![posterior pair](paper/posterior_pair.png)
+
+Projections of the posterior distribution for a three-cloud `GaussLine` model fit to a synthetic spectrum. The free model parameters are the integrated line area, $\int T_B dV$, the full-width at half-maximum line width, $\Delta V$, and the line-center velocity, $V_{\rm LSR}$. The line amplitude, $T_B$, is a derived quantity. The three posterior modes correspond to the three clouds in this model.
 
 # Usage
 
