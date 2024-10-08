@@ -43,8 +43,8 @@ velocity_axis = np.linspace(-250.0, 250.0, 501) # km s-1
 noise = 1.0 # K
 brightness_data = noise * np.random.randn(len(velocity_axis)) # K
 observation = SpecData(velocity_axis, brightness_data, noise,
-                       xlabel="Brightness Temperature $T_B$ (K)",
-                       ylabel="LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$")
+                       ylabel=r"Brightness Temperature $T_B$ (K)",
+                       xlabel=r"LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$")
 data = {"observation": observation}
 
 # Prepare a three cloud GaussLine model with polynomial baseline degree = 2
@@ -64,8 +64,8 @@ sim_brightness = model.model.observation.eval({
 
 # Pack data structure with synthetic "observation"
 observation = SpecData(velocity_axis, sim_brightness, noise,
-                       xlabel="Brightness Temperature $T_B$ (K)",
-                       ylabel="LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$")
+                       ylabel=r"Brightness Temperature $T_B$ (K)",
+                       xlabel=r"LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$")
 data = {"observation": observation}
 
 # Initialize the model with the synthetic observation
@@ -102,7 +102,6 @@ print(az.summary(model.trace.solution_0))
 
 ![Posterior predictive samples for a three-cloud `GaussLine` model fit to a synthetic spectrum. The black line represents the synthetic spectrum, and each colored line is one posterior predictive sample.](posterior_predictive.png)
 
-
-![gauss model](https://bayes-spec.readthedocs.io/en/stable/_images/notebooks_basic_tutorial_13_0.svg)
+![Projections of the posterior distribution for a three-cloud `GaussLine` model fit to a synthetic spectrum. The free model parameters are the integrated line area, $\int T_B dV$, the full-width at half-maximum line width, $\Delta V$, and the line-center velocity, $V_{\rm LSR}$. The line amplitude, $T_B$, is a derived quantity. The three posterior modes correspond to the three clouds in this model.](posterior_pair.png)
 
 # References
