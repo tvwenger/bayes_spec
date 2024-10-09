@@ -20,13 +20,13 @@ bibliography: paper.bib
 
 # Summary
 
-The study of the interstellar medium (ISM) -- the stuff between the stars -- relies heavily on the tools of spectroscopy. Spectral line observations of atoms, ions, and molecules in the ISM reveal the physical conditions and kinematics of the emitting gas. Robust and efficient numerical techniques are thus necessary for inferring the physical conditions of the ISM from observed spectral line data.
+The study of the interstellar medium (ISM) -- the matter between the stars -- relies heavily on the tools of spectroscopy. Spectral line observations of atoms, ions, and molecules in the ISM reveal the physical conditions and kinematics of the emitting gas. Robust and efficient numerical techniques are thus necessary for inferring the physical conditions of the ISM from observed spectral line data.
 
-`bayes_spec` is a Bayesian spectral line modeling framework for astrophysics. Given a user-defined model and some data, `bayes_spec` enables inference on the model parameters through different numerical techniques, such as Monte Carlo Markov Chain (MCMC) methods, implemented in the `pymc` probabilistic programming library [@pymc2023]. The API for `bayes_spec` is designed to support astrophysical researchers who wish to "fit" arbitrary, user-defined models, such as simple spectral line profile models or complicated physical models that include a full physical treatment of radiative transfer. These models are "cloud-based", meaning that the spectral line data is decomposed into a series of discrete clouds with parameters defined by the user's model. Importantly, `bayes_spec` provides algorithms to determine the optimal number of clouds for a given model and dataset.
+`bayes_spec` is a Bayesian spectral line modeling framework for astrophysics. Given a user-defined model and a spectral line dataset, `bayes_spec` enables inference of the model parameters through different numerical techniques, such as Monte Carlo Markov Chain (MCMC) methods, implemented in the `pymc` probabilistic programming library [@pymc2023]. The API for `bayes_spec` is designed to support astrophysical researchers who wish to "fit" arbitrary, user-defined models, such as simple spectral line profile models or complicated physical models that include a full physical treatment of radiative transfer. These models are "cloud-based", meaning that the spectral line data are decomposed into a series of discrete clouds with parameters defined by the user's model. Importantly, `bayes_spec` provides algorithms to determine the optimal number of clouds for a given model and dataset.
 
 # Statement of need
 
-Bayesian models of spectral line observations are rare in astrophysics. Physical inference is typically achieved through inverse modeling: the spectral line data are decomposed into Gaussian components, and then the physical parameters are inferred from the fitted Gaussian parameters under numerous assumptions. For example, such is the strategy of `gausspy` [@lindner2015], `ROHSA` [@marchal2019], `pyspeckit` [@ginsburg2022], and `MWYDYN` [@rigby2024]. This strategy suffers from two problems: (1) the degeneracies of Gaussian decomposition and (2) the assumptions of the inverse model. Bayesian forward models, like those enabled by `bayes_spec`, can overcome both of these limitations: (1) prior knowledge about the physical conditions can reduce the space of possible solutions, and (2) all assumptions are clearly built into the model rather than being applied *a priori*.
+Bayesian models of spectral line observations are rare in astrophysics. Physical inference is typically achieved through inverse modeling: the spectral line data are decomposed into Gaussian components, and then the physical parameters are inferred from the fitted Gaussian parameters under numerous assumptions. For example, this is the strategy of `gausspy` [@lindner2015], `ROHSA` [@marchal2019], `pyspeckit` [@ginsburg2022], and `MWYDYN` [@rigby2024]. This strategy suffers from two problems: (1) the degeneracies of Gaussian decomposition and (2) the assumptions of the inverse model. Bayesian forward models, like those enabled by `bayes_spec`, can overcome both of these limitations because (1) prior knowledge about the physical conditions can reduce the space of possible solutions, and (2) all assumptions are explicitly built into the model rather than being applied *a priori*.
 
 `bayes_spec` is inspired by [AMOEBA](https://github.com/AnitaPetzler/AMOEBA) [@petzler2021], an MCMC-based Bayesian model for interstellar hydroxide observations. `McFine` [@williams2024] is a new MCMC-based Bayesian model for hyperfine spectroscopy similar in spirit to `bayes_spec`. With `bayes_spec`, we aim to provide a user-friendly, general-purpose Bayesian modeling framework for *any* astrophysical spectral line observation.
 
@@ -84,15 +84,13 @@ from bayes_spec.plots import plot_predictive
 
 posterior = model.sample_posterior_predictive(thin=100)
 axes = plot_predictive(model.data, posterior.posterior_predictive)
-# axes.ravel()[0].figure.show()
-axes.ravel()[0].figure.savefig("posterior_predictive.png")
+axes.ravel()[0].figure.show()
 
 # visualize posterior distribution
 from bayes_spec.plots import plot_pair
 
 axes = plot_pair(model.trace.solution_0, model.cloud_deterministics, labeller=model.labeller)
-# axes.ravel()[0].figure.show()
-axes.ravel()[0].figure.savefig("posterior_pair.png")
+axes.ravel()[0].figure.show()
 
 # get posterior summary statistics
 import arviz as az
@@ -100,8 +98,8 @@ import arviz as az
 print(az.summary(model.trace.solution_0))
 ```
 
-![Posterior predictive samples for a three-cloud `GaussLine` model fit to a synthetic spectrum. The black line represents the synthetic spectrum, and each colored line is one posterior predictive sample.](posterior_predictive.png)
+![Posterior predictive samples for a three-cloud `GaussLine` model fit to a synthetic spectrum. The black line represents the synthetic spectrum, and each colored line is one posterior predictive sample.](posterior_predictive.pdf)
 
-![Projections of the posterior distribution for a three-cloud `GaussLine` model fit to a synthetic spectrum. The free model parameters are the integrated line area, $\int T_B dV$, the full-width at half-maximum line width, $\Delta V$, and the line-center velocity, $V_{\rm LSR}$. The line amplitude, $T_B$, is a derived quantity. The three posterior modes correspond to the three clouds in this model.](posterior_pair.png)
+![Projections of the posterior distribution for a three-cloud `GaussLine` model fit to a synthetic spectrum. The free model parameters are the integrated line area, $\int T_B dV$, the full-width at half-maximum line width, $\Delta V$, and the line-center velocity, $V_{\rm LSR}$. The line amplitude, $T_B$, is a derived quantity. The three posterior modes correspond to the three clouds in this model.](posterior_pair.pdf)
 
 # References
