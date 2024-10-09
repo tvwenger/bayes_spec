@@ -9,7 +9,7 @@ tags:
 authors:
     - name: Trey V. Wenger
       orcid: 0000-0003-0640-7787
-      equal-contrib: true
+      equal-contrib: false
       affiliation: 1
 affiliations:
     - name: NSF Astronomy & Astrophysics Postdoctoral Fellow, University of Wisconsin-Madison, USA
