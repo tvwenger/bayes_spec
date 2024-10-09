@@ -113,15 +113,13 @@ from bayes_spec.plots import plot_predictive
 
 posterior = model.sample_posterior_predictive(thin=100)
 axes = plot_predictive(model.data, posterior.posterior_predictive)
-# axes.ravel()[0].figure.show()
-axes.ravel()[0].figure.savefig("posterior_predictive.png")
+axes.ravel()[0].figure.show()
 
 # visualize posterior distribution
 from bayes_spec.plots import plot_pair
 
 axes = plot_pair(model.trace.solution_0, model.cloud_deterministics, labeller=model.labeller)
-# axes.ravel()[0].figure.show()
-axes.ravel()[0].figure.savefig("posterior_pair.png")
+axes.ravel()[0].figure.show()
 
 # get posterior summary statistics
 import arviz as az
