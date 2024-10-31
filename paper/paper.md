@@ -42,9 +42,11 @@ from bayes_spec import SpecData
 velocity_axis = np.linspace(-250.0, 250.0, 501) # km s-1
 noise = 1.0 # K
 brightness_data = noise * np.random.randn(len(velocity_axis)) # K
-observation = SpecData(velocity_axis, brightness_data, noise,
-                       ylabel=r"Brightness Temperature $T_B$ (K)",
-                       xlabel=r"LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$")
+observation = SpecData(
+    velocity_axis, brightness_data, noise,
+    ylabel=r"Brightness Temperature $T_B$ (K)",
+    xlabel=r"LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$",
+)
 data = {"observation": observation}
 
 # Prepare a three cloud GaussLine model with polynomial baseline degree = 2
@@ -54,18 +56,22 @@ model = GaussModel(data, n_clouds=3, baseline_degree=2)
 model.add_priors()
 model.add_likelihood()
 
-# Evaluate the model for a given set of parameters to generate a synthetic "observation"
+# Evaluate the model for a given set of parameters to generate a
+# synthetic "observation"
 sim_brightness = model.model.observation.eval({
     "fwhm": [25.0, 40.0, 35.0], # FWHM line width (km/s)
     "line_area": [250.0, 125.0, 175.0], # line area (K km/s)
     "velocity": [-35.0, 10.0, 55.0], # velocity (km/s)
-    "baseline_observation_norm": [-0.5, -2.0, 3.0], # normalized baseline coefficients
+    # normalized baseline coefficients
+    "baseline_observation_norm": [-0.5, -2.0, 3.0], 
 })
 
 # Pack data structure with synthetic "observation"
-observation = SpecData(velocity_axis, sim_brightness, noise,
-                       ylabel=r"Brightness Temperature $T_B$ (K)",
-                       xlabel=r"LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$")
+observation = SpecData(
+    velocity_axis, sim_brightness, noise,
+    ylabel=r"Brightness Temperature $T_B$ (K)",
+    xlabel=r"LSR Velocity $V_{\rm LSR}$ (km s$^{-1})$",
+)
 data = {"observation": observation}
 
 # Initialize the model with the synthetic observation
@@ -89,13 +95,12 @@ axes.ravel()[0].figure.show()
 # visualize posterior distribution
 from bayes_spec.plots import plot_pair
 
-axes = plot_pair(model.trace.solution_0, model.cloud_deterministics, labeller=model.labeller)
+axes = plot_pair(
+    model.trace.solution_0,
+    model.cloud_deterministics,
+    labeller=model.labeller,
+)
 axes.ravel()[0].figure.show()
-
-# get posterior summary statistics
-import arviz as az
-
-print(az.summary(model.trace.solution_0))
 ```
 
 ![Posterior predictive samples for a three-cloud `GaussLine` model fit to a synthetic spectrum. The black line represents the synthetic spectrum, and each colored line is one posterior predictive sample.](posterior_predictive.pdf)
