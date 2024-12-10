@@ -51,6 +51,29 @@ class ModelC(ModelB):
             )
 
 
+class ModelD(BaseModel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cluster_features += ["x", "z"]
+        self.var_name_map.update({"x": "X", "y": "Y", "z": "Z"})
+
+    def add_priors(self, prior_baseline_coeffs=None):
+        super().add_baseline_priors(prior_baseline_coeffs=prior_baseline_coeffs)
+        with self.model:
+            x = pm.Normal("x", mu=0.0, sigma=1.0, dims="cloud", initval=np.linspace(-1.0, 1.0, self.n_clouds))
+            y = pm.Normal("y", mu=0.0, sigma=1.0)
+            _ = pm.Deterministic("z", x + y, dims="cloud")
+
+    def add_likelihood(self):
+        with self.model:
+            _ = pm.Normal(
+                "observation",
+                mu=np.ones_like(self.data["observation"].spectral) * self.model["z"].sum(),
+                sigma=self.data["observation"].noise,
+                observed=self.data["observation"].brightness,
+            )
+
+
 def test_valid():
     spectral = np.linspace(-5.0, 10.0, 1000)
     brightness = 10.0 * _RNG.randn(1000) + 10.0
@@ -104,3 +127,15 @@ def test_attributes():
     prior_baseline_coeffs = {"observation": [0.0]}
     with pytest.raises(ValueError):
         model.add_priors(prior_baseline_coeffs=prior_baseline_coeffs)
+
+
+def test_initval():
+    # Regression test for https://github.com/tvwenger/bayes_spec/issues/66
+    spectral = np.linspace(-5.0, 10.0, 1000)
+    brightness = 10.0 * _RNG.randn(1000) + 10.0
+    data = {"observation": SpecData(spectral, brightness, 1.0)}
+
+    model = ModelD(data, 2, baseline_degree=3, seed=1234, verbose=True)
+    model.add_priors()
+    model.add_likelihood()
+    model.fit(rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)

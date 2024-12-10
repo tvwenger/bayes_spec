@@ -25,7 +25,6 @@ class Optimize:
         model_type: Type[BaseModel],
         data: dict[str, SpecData],
         max_n_clouds: int = 5,
-        baseline_degree: int = 0,
         seed: int = 1234,
         verbose: bool = False,
         **kwargs,
@@ -38,8 +37,6 @@ class Optimize:
         :type data: dict[str, SpecData]
         :param max_n_clouds: Maximum number of clouds to fit, defaults to 5
         :type max_n_clouds: int, optional
-        :param baseline_degree: Polynomial baseline degree, defaults to 0
-        :type baseline_degree: int, optional
         :param seed: Random seed, defaults to 1234
         :type seed: int, optional
         :param verbose: Verbose output, defaults to False
@@ -59,7 +56,6 @@ class Optimize:
             self.models[n_cloud] = model_type(
                 self.data,
                 n_cloud,
-                baseline_degree,
                 seed=seed,
                 verbose=self.verbose,
                 **kwargs,
@@ -223,7 +219,9 @@ class Optimize:
             if approx:
                 # sample best
                 if self.verbose:
-                    print(f"Sampling best model (n_cloud = {self.best_model.n_clouds})...")
+                    print(
+                        f"Sampling best model (n_cloud = {self.best_model.n_clouds})..."
+                    )
                 if smc:
                     self.best_model.sample_smc(**sample_kwargs)
                 else:

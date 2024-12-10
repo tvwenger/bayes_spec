@@ -39,7 +39,6 @@ class BaseModel(ABC):
         self,
         data: dict[str, SpecData],
         n_clouds: int,
-        baseline_degree: int = 0,
         seed: int = 1234,
         verbose: bool = False,
     ):
@@ -49,22 +48,18 @@ class BaseModel(ABC):
         :type data: dict[str, SpecData]
         :param n_clouds: Number of cloud components
         :type n_clouds: int
-        :param baseline_degree: Polynomial baseline degree, defaults to 0
-        :type baseline_degree: int, optional
         :param seed: Random seed, defaults to 1234
         :type seed: int, optional
         :param verbose: Print verbose output, defaults to False
         :type verbose: bool, optional
         """
         self.n_clouds = n_clouds
-        self.baseline_degree = baseline_degree
         self.seed = seed
         self.verbose = verbose
         self.data = data
 
         # Initialize the model
         coords = {
-            "baseline_coeff": range(self.baseline_degree + 1),
             "cloud": range(self.n_clouds),
         }
         self._n_data = 0
@@ -76,7 +71,10 @@ class BaseModel(ABC):
         self._cluster_features = []
 
         # Arviz labeller map
-        self.var_name_map = {f"baseline_{key}_norm": r"$\beta_{\rm " + key + r"}$" for key in self.data.keys()}
+        self.var_name_map = {}
+        for key in self.data.keys():
+            self.var_name_map[f"baseline_{key}_ell"] = r"$\ell_{\rm " + key + r"}$"
+            self.var_name_map[f"baseline_{key}_eta"] = r"$\eta_{\rm " + key + r"}$"
 
         # set results and convergence checks
         self.reset_results()
@@ -91,7 +89,9 @@ class BaseModel(ABC):
         """Must be defined in inhereted class."""
         pass
 
-    def _get_param_names(self, dim: Optional[str] = None, deterministics: bool = False) -> Iterable[str]:
+    def _get_param_names(
+        self, dim: Optional[str] = None, deterministics: bool = False
+    ) -> Iterable[str]:
         """Get a subset of the model parameter names.
 
         :param dims: Select only parameters with this dimension name. If None, select dimensionless parameters, defaults to None
@@ -101,28 +101,20 @@ class BaseModel(ABC):
         :return: Parameter names matching selection
         :rtype: Iterable[str]
         """
-        all_params = self.model.deterministics if deterministics else self.model.free_RVs
+        all_params = (
+            self.model.deterministics if deterministics else self.model.free_RVs
+        )
         if dim is None:
-            return [param.name for param in all_params if param.name not in self.model.named_vars_to_dims]
-        return [param.name for param in all_params if dim in self.model.named_vars_to_dims.get(param.name, [])]
-
-    @property
-    def baseline_freeRVs(self) -> Iterable[str]:
-        """Get the free baseline parameter names.
-
-        :return: Free baseline parameter names
-        :rtype: Iterable[str]
-        """
-        return self._get_param_names("baseline_coeff", deterministics=False)
-
-    @property
-    def baseline_deterministics(self) -> Iterable[str]:
-        """Get the deterministic baseline parameter names.
-
-        :return: Deterministic baseline parameter names
-        :rtype: Iterable[str]
-        """
-        return self._get_param_names("baseline_coeff", deterministics=True)
+            return [
+                param.name
+                for param in all_params
+                if param.name not in self.model.named_vars_to_dims
+            ]
+        return [
+            param.name
+            for param in all_params
+            if dim in self.model.named_vars_to_dims.get(param.name, [])
+        ]
 
     @property
     def cloud_freeRVs(self) -> Iterable[str]:
@@ -216,7 +208,9 @@ class BaseModel(ABC):
 
         # check that model can be evaluated
         if not np.isfinite(self.model.logp().eval(self.model.initial_point())):
-            raise ValueError("Model initial point is not finite! Mis-specified model or bad priors?")
+            raise ValueError(
+                "Model initial point is not finite! Mis-specified model or bad priors?"
+            )
 
         return True
 
@@ -249,16 +243,20 @@ class BaseModel(ABC):
         """
         lnlike = 0.0
         for _, dataset in self.data.items():
-            # fit polynomial baseline to un-normalized spectral data
-            baseline = Polynomial.fit(dataset.spectral, dataset.brightness, self.baseline_degree)(dataset.spectral)
+            # TODO: fit GP to un-normalized spectral data
+            baseline = np.median(dataset.brightness)
 
             # evaluate likelihood
-            lnlike += norm.logpdf(dataset.brightness - baseline, scale=dataset.noise).sum()
+            lnlike += norm.logpdf(
+                dataset.brightness - baseline, scale=dataset.noise
+            ).sum()
 
-        n_params = len(self.data) * (self.baseline_degree + 1)
+        n_params = 1
         return n_params * np.log(self._n_data) - 2.0 * lnlike
 
-    def mean_lnlike(self, chain: Optional[int] = None, solution: Optional[int] = None) -> float:
+    def mean_lnlike(
+        self, chain: Optional[int] = None, solution: Optional[int] = None
+    ) -> float:
         """Evaluate mean log-likelihood over posterior samples.
 
         :param chain: Evaluate mean log-likelihood for this chain using un-clustered posterior samples. If `None` evaluate
@@ -302,59 +300,29 @@ class BaseModel(ABC):
             print(e)
             return np.inf
 
-    def add_baseline_priors(self, prior_baseline_coeffs: Optional[dict[str, list[float]]] = None):
-        """Add baseline priors to the model. The polynomial baseline is evaluated on the normalized data like:
-        `baseline_norm = sum_i(coeff[i]/(i+1)**i * spectral_norm**i)`
-
-        :param prior_baseline_coeffs: Width of normal prior distribution on the normalized baseline polynomial
-            coefficients. Keys are dataset names and values are lists of length `baseline_degree+1`. If None,
-            use `[1.0]*(baseline_degree+1)` for each dataset, defaults to None
-        :type prior_baseline_coeffs: Optional[dict[str, list[float]]], optional
+    def add_baseline_priors(self):
+        """Add baseline priors to the model. The baseline is modeled as a Gaussian process with
+        two free parameters: ell (the length scale) and eta (the covariance scale). These parameters
+        are internally normalized for a given dataset.
         """
-        if prior_baseline_coeffs is None:
-            prior_baseline_coeffs = {key: [1.0] * (self.baseline_degree + 1) for key in self.data.keys()}
-        for key, coeffs in prior_baseline_coeffs.items():
-            if len(coeffs) != self.baseline_degree + 1:
-                raise ValueError(
-                    f"{key} baseline coefficient prior must have length `baseline_degree+1` = {self.baseline_degree + 1}"
-                )
-
         with self.model:
-            for key in self.data.keys():
-                # add the normalized prior
-                _ = pm.Normal(
-                    f"baseline_{key}_norm",
-                    mu=0.0,
-                    sigma=prior_baseline_coeffs[key],
-                    dims="baseline_coeff",
+            for key, dataset in self.data.items():
+                baseline_ell = pm.Gamma(
+                    f"baseline_{key}_ell",
+                    alpha=2.0,
+                    beta=0.1,
                 )
-
-    def predict_baseline(self, baseline_params: Optional[dict[str, list[float]]] = None) -> dict[str, list[float]]:
-        """Predict the un-normalized baseline model.
-
-        :param baseline_params: Dictionary of baseline parameters with which to evaluate the baseline model.
-            Keys are the same as in the model: "baseline_{key}_norm", where {key} are the supplied datasets. The
-            values are lists of length `baseline_degree+1`. If None, evaluate the baseline model using the current
-            model state, defaults to None
-        :type baseline_params: Optional[dict[str, list[float]]], optional
-        :return: Un-normalized baseline models for each dataset. Keys are dataset names and values are
-            the un-normalized baseline models.
-        :rtype: dict[str, list[float]]
-        """
-        if baseline_params is None:
-            baseline_params = self.model
-        baseline_model = {}
-        for key, dataset in self.data.items():
-            # evaluate the baseline
-            baseline_norm = pt.sum(
-                [
-                    baseline_params[f"baseline_{key}_norm"][i] / (i + 1.0) ** i * dataset.spectral_norm**i
-                    for i in range(self.baseline_degree + 1)
-                ],
-                axis=0,
-            )
-            baseline_model[key] = dataset.unnormalize_brightness(baseline_norm)
-        return baseline_model
+                baseline_eta = pm.HalfNormal(
+                    f"baseline_{key}_eta",
+                    sigma=1.0,
+                )
+                cov = (
+                    np.nanmedian(dataset.noise) ** 2.0
+                    * baseline_eta**2.0
+                    * pm.gp.cov.ExpQuad(1, ls=baseline_ell, active_dims=[0])
+                )
+                gp = pm.gp.Latent(cov_func=cov)
+                _ = gp.prior(f"baseline_{key}", X=dataset.spectral_norm[:, None])
 
     def sample_prior_predictive(self, samples: int = 50) -> az.InferenceData:
         """Generate prior predictive samples
@@ -398,7 +366,9 @@ class BaseModel(ABC):
             if solution is None:
                 posterior = self.trace.posterior.sel(draw=slice(None, None, thin))
             else:
-                posterior = self.trace[f"solution_{solution}"].sel(draw=slice(None, None, thin))
+                posterior = self.trace[f"solution_{solution}"].sel(
+                    draw=slice(None, None, thin)
+                )
             trace = pm.sample_posterior_predictive(
                 posterior,
                 extend_inferencedata=True,
@@ -484,7 +454,11 @@ class BaseModel(ABC):
         self.reset_results()
 
         # catch non-standard initialization for non-pymc samplers
-        if "nuts_sampler" in kwargs.keys() and kwargs["nuts_sampler"] != "pymc" and init != "auto":
+        if (
+            "nuts_sampler" in kwargs.keys()
+            and kwargs["nuts_sampler"] != "pymc"
+            and init != "auto"
+        ):
             init = "auto"
             warnings.warn("setting init='auto' for non-pymc sampler")
 
@@ -611,18 +585,26 @@ class BaseModel(ABC):
             elif len(solutions) > 1:  # pragma: no cover
                 print(f"GMM found {len(solutions)} unique solutions")
                 for solution_idx, solution in enumerate(solutions):
-                    print(f"Solution {solution_idx}: chains {list(solution['label_orders'].keys())}")
+                    print(
+                        f"Solution {solution_idx}: chains {list(solution['label_orders'].keys())}"
+                    )
 
         assigned_chains = []
         for solution in solutions:
             assigned_chains += list(solution["label_orders"].keys())
         if self.verbose and len(assigned_chains) < len(self.trace.posterior.chain):
-            print(f"{len(assigned_chains)} of {len(self.trace.posterior.chain)} chains appear converged.")
+            print(
+                f"{len(assigned_chains)} of {len(self.trace.posterior.chain)} chains appear converged."
+            )
 
         for solution_idx, solution in enumerate(solutions):
             # report labeling degeneracy
-            label_orders = np.array([label_order for label_order in solution["label_orders"].values()])
-            if self.verbose and not np.all(label_orders == label_orders[0]):  # pragma: no cover
+            label_orders = np.array(
+                [label_order for label_order in solution["label_orders"].values()]
+            )
+            if self.verbose and not np.all(
+                label_orders == label_orders[0]
+            ):  # pragma: no cover
                 print(f"Label order mismatch in solution {solution_idx}")
                 for chain, label_order in solution["label_orders"].items():
                     print(f"Chain {chain} order: {label_order}")
