@@ -85,16 +85,57 @@ class Optimize:
         model_bics = {0: self.null_bic}
         for n_cloud, model in self.models.items():
             best_solution_bic = np.inf
-            # VI does not have solution, only single "chain"
-            if model.solutions is None or len(model.solutions) == 0:
-                best_solution_bic = model.bic(chain=[0])
-            else:
-                for solution in model.solutions:
-                    solution_bic = model.bic(solution=solution)
-                    if solution_bic < best_solution_bic:
-                        best_solution_bic = solution_bic
+            # Check that model has been sampled
+            if model.trace is not None:
+                # VI does not have solution, only single "chain"
+                if len(model.trace.posterior.chain) == 1:
+                    best_solution_bic = model.bic(chain=[0])
+                else:
+                    for solution in model.solutions:
+                        solution_bic = model.bic(solution=solution)
+                        if solution_bic < best_solution_bic:
+                            best_solution_bic = solution_bic
             model_bics[n_cloud] = best_solution_bic
         return model_bics
+
+    def _check_stop(self, n_cloud: int, bic_threshold: float = 10.0):
+        """Check if any of the stopping criteria are met. Stopping criteria are:
+        1. Model did not converge
+        2. Model has multiple solutions (excludeing VI results, which only have one chain)
+        3. BIC did not improve by more than bic_threshold over previous model
+
+        :param `n_cloud`: model to check
+        :type n_cloud: int
+        :param bic_threshold: The `best_model` is the first with BIC within `min(BIC)+bic_threshold`, defaults to 10.0
+        :type bic_threshold: float, optional
+
+        :return: True if any stopping criteria are met
+        :rtype: bool
+        """
+        # Check there's a trace
+        if self.models[n_cloud].trace is None:
+            return True
+
+        # Check if there are no solutions or multiple solutions
+        if len(self.models[n_cloud].trace.posterior.chain) > 1:
+            if len(self.models[n_cloud].solutions) != 1:
+                return True
+
+        # Get last non-inf BIC
+        bics = self.bics
+        last_bic = bics[0]
+        for n in range(1, n_cloud):
+            model_bic = bics[n]
+            if not np.isinf(model_bic):
+                last_bic = model_bic
+
+        # Check BIC
+        this_bic = bics[n_cloud]
+        if this_bic + bic_threshold >= last_bic:
+            return True
+
+        # No stopping criteria are met
+        return False
 
     def add_priors(self, *args, **kwargs):
         """Add priors to the models
@@ -178,17 +219,25 @@ class Optimize:
     def optimize(
         self,
         bic_threshold: float = 10.0,
+        kl_div_threshold: float = 0.1,
         fit_kwargs: dict = {},
         sample_kwargs: dict = {},
         smc: bool = False,
         approx: bool = True,
     ):
         """Determine optimal number of clouds by minimizing the Bayesian Information Criterion
-        using MCMC, Sequntial Monte Carlo, or Variational Inference. Then, sample the best model
-        using MCMC or SMC, and solve the labeling degeneracy.
+        using MCMC, Sequntial Monte Carlo, or Variational Inference. Models are sampled in sequential
+        order starting with n_clouds = 1 until the stopping criteria are met twice in succession.
+        Then, if approx=True, sample the best model using MCMC or SMC and solve the labeling degeneracy.
+        Stopping criteria are:
+        1. Model did not converge
+        2. Model has multiple solutions (excludeing VI results, which only have one chain)
+        3. BIC did not improve by more than bic_threshold over previous model
 
         :param bic_threshold: The `best_model` is the first with BIC within `min(BIC)+bic_threshold`, defaults to 10.0
         :type bic_threshold: float, optional
+        :param `kl_div_threshold`: GMM convergence threshold
+        :type kl_div_threshold: float, optional
         :param fit_kwargs: Keyword arguments passed to :func:`fit`, defaults to {}
         :type fit_kwargs: dict, optional
         :param sample_kwargs: Keyword arguments passed to :func:`sample`, defaults to {}
@@ -198,15 +247,52 @@ class Optimize:
         :param approx: If True, approximate all models using VI, defaults to True
         :type approx: bool, optional
         """
-        if approx:
-            # fit all with VI
-            self.fit_all(**fit_kwargs)
-        elif smc:
-            # sample with SMC
-            self.sample_smc_all(**sample_kwargs)
-        else:
-            # sample with MCMC
-            self.sample_all(**sample_kwargs)
+        if self.verbose:
+            print(f"Null hypothesis BIC = {self.models[1].null_bic():.3e}")
+
+        stop = False
+        for n_cloud in self.n_clouds:
+            if approx:
+                # fit with VI
+                if self.verbose:
+                    print(f"Approximating n_cloud = {n_cloud} posterior...")
+                self.models[n_cloud].fit(**fit_kwargs)
+                if self.verbose:
+                    bic = self.models[n_cloud].bic(chain=[0])
+                    print(f"n_cloud = {n_cloud} BIC = {bic:.3e}")
+                    print()
+
+            else:
+                if self.verbose:
+                    print(f"Sampling n_cloud = {n_cloud} posterior...")
+                if smc:
+                    # sample with SMC
+                    self.models[n_cloud].sample_smc(**sample_kwargs)
+                else:
+                    # sample with MCMC
+                    self.models[n_cloud].sample(**sample_kwargs)
+                self.models[n_cloud].solve()
+                if self.verbose:
+                    for solution in self.models[n_cloud].solutions:
+                        print(
+                            f"n_cloud = {n_cloud} "
+                            + f"solution = {solution} "
+                            + f"BIC = {self.models[n_cloud].bic(solution=solution):.3e}"
+                        )
+                    print()
+
+            # check stopping criteria
+            if self._check_stop(n_cloud, bic_threshold=bic_threshold):
+                if self.verbose:
+                    print("Stopping criteria met.")
+                # stop if we met criteria twice
+                if stop:
+                    if self.verbose:
+                        print("Stopping early.")
+                    break
+                stop = True
+            else:
+                stop = False
 
         # get best model
         bics = self.bics
@@ -228,4 +314,4 @@ class Optimize:
                     self.best_model.sample_smc(**sample_kwargs)
                 else:
                     self.best_model.sample(**sample_kwargs)
-                self.best_model.solve()
+                self.best_model.solve(kl_div_threshold=kl_div_threshold)

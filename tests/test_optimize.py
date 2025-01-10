@@ -33,7 +33,7 @@ def test_optimize():
     data = {"observation": SpecData(spectral, brightness, noise)}
 
     # Test Optimize
-    opt = Optimize(GaussModel, data, max_n_clouds=2, verbose=True)
+    opt = Optimize(GaussModel, data, max_n_clouds=5, verbose=True)
     opt.add_priors()
     opt.add_likelihood()
     fit_kwargs = {
@@ -59,7 +59,7 @@ def test_optimize():
     )
     assert opt.best_model.n_clouds == 1
     assert opt.null_bic == opt.models[1].null_bic()
-    assert len(opt.bics) == 3
+    assert len(opt.bics) == 5
 
     # MCMC only
     opt.optimize(
