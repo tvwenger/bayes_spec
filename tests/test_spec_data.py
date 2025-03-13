@@ -36,7 +36,9 @@ def test_normalize():
     data = SpecData(spectral, brightness, 1.0)
     assert data.spectral_norm.max() == pytest.approx(1.0)
     assert data.spectral_norm.min() == pytest.approx(-1.0)
-    assert data.brightness_norm.mean() == pytest.approx(0.0)
-    assert data.brightness_norm.std() == pytest.approx(1.0)
-    assert data.unnormalize_brightness(data.normalize_brightness(brightness)) == pytest.approx(brightness)
-    assert data.unnormalize_spectral(data.normalize_spectral(spectral)) == pytest.approx(spectral)
+    assert data.unnormalize_brightness(
+        data.normalize_brightness(brightness)
+    ) == pytest.approx(brightness)
+    assert data.unnormalize_spectral(
+        data.normalize_spectral(spectral)
+    ) == pytest.approx(spectral)
