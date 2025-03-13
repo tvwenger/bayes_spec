@@ -113,7 +113,7 @@ class Optimize:
         :rtype: bool
         """
         # Check there's a trace
-        if self.models[n_cloud].trace is None:
+        if self.models[n_cloud].trace is None:  # pragma: no cover
             return True
 
         # Check if there are no solutions or multiple solutions
@@ -309,7 +309,9 @@ class Optimize:
             if approx:
                 # sample best
                 if self.verbose:
-                    print(f"Sampling best model (n_cloud = {self.best_model.n_clouds})...")
+                    print(
+                        f"Sampling best model (n_cloud = {self.best_model.n_clouds})..."
+                    )
                 if smc:
                     self.best_model.sample_smc(**sample_kwargs)
                 else:
