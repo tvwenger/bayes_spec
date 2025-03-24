@@ -11,8 +11,6 @@ from typing import Optional, Iterable
 
 import arviz as az
 import arviz.labels as azl
-from arviz.sel_utils import xarray_var_iter
-from arviz.utils import get_coords
 
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
