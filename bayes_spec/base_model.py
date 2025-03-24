@@ -76,7 +76,10 @@ class BaseModel(ABC):
         self._cluster_features = []
 
         # Arviz labeller map
-        self.var_name_map = {f"baseline_{key}_norm": r"$\beta_{\rm " + key + r"}$" for key in self.data.keys()}
+        self.var_name_map = {
+            f"baseline_{key}_norm": r"$\beta_{\rm " + key + r"}$"
+            for key in self.data.keys()
+        }
 
         # set results and convergence checks
         self.reset_results()
@@ -91,7 +94,9 @@ class BaseModel(ABC):
         """Must be defined in inhereted class."""
         pass
 
-    def _get_param_names(self, dim: Optional[str] = None, deterministics: bool = False) -> Iterable[str]:
+    def _get_param_names(
+        self, dim: Optional[str] = None, deterministics: bool = False
+    ) -> Iterable[str]:
         """Get a subset of the model parameter names.
 
         :param dims: Select only parameters with this dimension name. If None, select dimensionless parameters, defaults to None
@@ -101,10 +106,20 @@ class BaseModel(ABC):
         :return: Parameter names matching selection
         :rtype: Iterable[str]
         """
-        all_params = self.model.deterministics if deterministics else self.model.free_RVs
+        all_params = (
+            self.model.deterministics if deterministics else self.model.free_RVs
+        )
         if dim is None:
-            return [param.name for param in all_params if param.name not in self.model.named_vars_to_dims]
-        return [param.name for param in all_params if dim in self.model.named_vars_to_dims.get(param.name, [])]
+            return [
+                param.name
+                for param in all_params
+                if param.name not in self.model.named_vars_to_dims
+            ]
+        return [
+            param.name
+            for param in all_params
+            if dim in self.model.named_vars_to_dims.get(param.name, [])
+        ]
 
     @property
     def baseline_freeRVs(self) -> Iterable[str]:
@@ -216,7 +231,9 @@ class BaseModel(ABC):
 
         # check that model can be evaluated
         if not np.isfinite(self.model.logp().eval(self.model.initial_point())):
-            raise ValueError("Model initial point is not finite! Mis-specified model or bad priors?")
+            raise ValueError(
+                "Model initial point is not finite! Mis-specified model or bad priors?"
+            )
 
         return True
 
@@ -250,15 +267,21 @@ class BaseModel(ABC):
         lnlike = 0.0
         for _, dataset in self.data.items():
             # fit polynomial baseline to un-normalized spectral data
-            baseline = Polynomial.fit(dataset.spectral, dataset.brightness, self.baseline_degree)(dataset.spectral)
+            baseline = Polynomial.fit(
+                dataset.spectral, dataset.brightness, self.baseline_degree
+            )(dataset.spectral)
 
             # evaluate likelihood
-            lnlike += norm.logpdf(dataset.brightness - baseline, scale=dataset.noise).sum()
+            lnlike += norm.logpdf(
+                dataset.brightness - baseline, scale=dataset.noise
+            ).sum()
 
         n_params = len(self.data) * (self.baseline_degree + 1)
         return n_params * np.log(self._n_data) - 2.0 * lnlike
 
-    def mean_lnlike(self, chain: Optional[int] = None, solution: Optional[int] = None) -> float:
+    def mean_lnlike(
+        self, chain: Optional[int] = None, solution: Optional[int] = None
+    ) -> float:
         """Evaluate mean log-likelihood over posterior samples.
 
         :param chain: Evaluate mean log-likelihood for this chain using un-clustered posterior samples. If `None` evaluate
@@ -302,7 +325,9 @@ class BaseModel(ABC):
             print(e)
             return np.inf
 
-    def add_baseline_priors(self, prior_baseline_coeffs: Optional[dict[str, list[float]]] = None):
+    def add_baseline_priors(
+        self, prior_baseline_coeffs: Optional[dict[str, list[float]]] = None
+    ):
         """Add baseline priors to the model. The polynomial baseline is evaluated on the normalized data like:
         `baseline_norm = sum_i(coeff[i]/(i+1)**i * spectral_norm**i)`
 
@@ -312,7 +337,9 @@ class BaseModel(ABC):
         :type prior_baseline_coeffs: Optional[dict[str, list[float]]], optional
         """
         if prior_baseline_coeffs is None:
-            prior_baseline_coeffs = {key: [1.0] * (self.baseline_degree + 1) for key in self.data.keys()}
+            prior_baseline_coeffs = {
+                key: [1.0] * (self.baseline_degree + 1) for key in self.data.keys()
+            }
         for key, coeffs in prior_baseline_coeffs.items():
             if len(coeffs) != self.baseline_degree + 1:
                 raise ValueError(
@@ -329,7 +356,9 @@ class BaseModel(ABC):
                     dims="baseline_coeff",
                 )
 
-    def predict_baseline(self, baseline_params: Optional[dict[str, list[float]]] = None) -> dict[str, list[float]]:
+    def predict_baseline(
+        self, baseline_params: Optional[dict[str, list[float]]] = None
+    ) -> dict[str, list[float]]:
         """Predict the un-normalized baseline model.
 
         :param baseline_params: Dictionary of baseline parameters with which to evaluate the baseline model.
@@ -348,7 +377,9 @@ class BaseModel(ABC):
             # evaluate the baseline
             baseline_norm = pt.sum(
                 [
-                    baseline_params[f"baseline_{key}_norm"][i] / (i + 1.0) ** i * dataset.spectral_norm**i
+                    baseline_params[f"baseline_{key}_norm"][i]
+                    / (i + 1.0) ** i
+                    * dataset.spectral_norm**i
                     for i in range(self.baseline_degree + 1)
                 ],
                 axis=0,
@@ -398,7 +429,9 @@ class BaseModel(ABC):
             if solution is None:
                 posterior = self.trace.posterior.sel(draw=slice(None, None, thin))
             else:
-                posterior = self.trace[f"solution_{solution}"].sel(draw=slice(None, None, thin))
+                posterior = self.trace[f"solution_{solution}"].sel(
+                    draw=slice(None, None, thin)
+                )
             trace = pm.sample_posterior_predictive(
                 posterior,
                 extend_inferencedata=True,
@@ -484,7 +517,11 @@ class BaseModel(ABC):
         self.reset_results()
 
         # catch non-standard initialization for non-pymc samplers
-        if "nuts_sampler" in kwargs.keys() and kwargs["nuts_sampler"] != "pymc" and init != "auto":
+        if (
+            "nuts_sampler" in kwargs.keys()
+            and kwargs["nuts_sampler"] != "pymc"
+            and init != "auto"
+        ):
             init = "auto"
             warnings.warn("setting init='auto' for non-pymc sampler")
 
@@ -611,18 +648,26 @@ class BaseModel(ABC):
             elif len(solutions) > 1:  # pragma: no cover
                 print(f"GMM found {len(solutions)} unique solutions")
                 for solution_idx, solution in enumerate(solutions):
-                    print(f"Solution {solution_idx}: chains {list(solution['label_orders'].keys())}")
+                    print(
+                        f"Solution {solution_idx}: chains {list(solution['label_orders'].keys())}"
+                    )
 
         assigned_chains = []
         for solution in solutions:
             assigned_chains += list(solution["label_orders"].keys())
         if self.verbose and len(assigned_chains) < len(self.trace.posterior.chain):
-            print(f"{len(assigned_chains)} of {len(self.trace.posterior.chain)} chains appear converged.")
+            print(
+                f"{len(assigned_chains)} of {len(self.trace.posterior.chain)} chains appear converged."
+            )
 
         for solution_idx, solution in enumerate(solutions):
             # report labeling degeneracy
-            label_orders = np.array([label_order for label_order in solution["label_orders"].values()])
-            if self.verbose and not np.all(label_orders == label_orders[0]):  # pragma: no cover
+            label_orders = np.array(
+                [label_order for label_order in solution["label_orders"].values()]
+            )
+            if self.verbose and not np.all(
+                label_orders == label_orders[0]
+            ):  # pragma: no cover
                 print(f"Label order mismatch in solution {solution_idx}")
                 for chain, label_order in solution["label_orders"].items():
                     print(f"Chain {chain} order: {label_order}")

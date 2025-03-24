@@ -6,7 +6,7 @@ pymc>=5
 pytensor
 nutpie
 numba
-arviz
+# arviz
 matplotlib
 scipy
 scikit-learn
@@ -15,3 +15,4 @@ jaxlib
 jax
 blackjax
 numpyro
+arviz @ git+https://github.com/tvwenger/arviz.git@plot_pair_reference_labels
