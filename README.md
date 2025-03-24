@@ -221,7 +221,7 @@ It is also possible that the model solution is degenerate, the posterior distrib
 | `line_area`                   | Integrated line area                        | `K km s-1` | $\int T_{B, \rm H} dV \sim {\rm Gamma}(\alpha=2.0, \beta=1.0/p)$ | `100.0`                       |
 | `fwhm`                        | FWHM line width                             | `km s-1`   | $\Delta V_{\rm H} \sim {\rm Gamma}(\alpha=3.0, \beta=2.0/p)$     | `20.0`                        |  |
 | `velocity`                    | Center velocity                             | `km s-1`   | $V_{\rm LSR, H} \sim {\rm Normal}(\mu=p_0, \sigma=p_1)$          | `[0.0, 25.0]`                 |
-| `baseline_coeffs`             | Normalized polynomial baseline coefficients | ``         | $\beta_i \sim {\rm Normal}(\mu=0.0, \sigma=p_i)$                 | `[1.0]*(baseline_degree + 1)`       |
+| `baseline_coeffs`             | Normalized polynomial baseline coefficients | ``         | $\beta_i \sim {\rm Normal}(\mu=0.0, \sigma=p_i)$                 | `[1.0]*(baseline_degree + 1)` |
 
 ## `bayes_spec.models.GaussNoiseModel`
 

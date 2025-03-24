@@ -17,7 +17,7 @@ dependencies:
   - pytensor
   - nutpie
   - numba
-  - arviz
+ # - arviz
   - matplotlib
   - scipy
   - scikit-learn
@@ -27,3 +27,6 @@ dependencies:
   - jax
   - blackjax
   - numpyro
+  - pip
+  - pip:
+    - git+https://github.com/tvwenger/arviz.git@plot_pair_reference_labels
