@@ -52,7 +52,9 @@ def cluster_posterior(
     # Fit GMMs to posterior samples of each chain, generate samples from GMMs
     gmm_results = {}
     for chain in trace.chain.data:
-        features = np.array([trace[param].sel(chain=chain).data.flatten() for param in cluster_features]).T
+        features = np.array(
+            [trace[param].sel(chain=chain).data.flatten() for param in cluster_features]
+        ).T
         gmm = GaussianMixture(
             n_components=n_clusters,
             max_iter=100,
@@ -89,14 +91,21 @@ def cluster_posterior(
         ]
 
         # skip if fewer than two chains are assigned to this solution
-        if len(good_kl_div_chains) < 2:
+        if len(good_kl_div_chains) < 2:  # pragma: no cover
             continue
 
         # get label order of each chain based on this chain's GMM
         solution = {"label_orders": {}}
         for chain2 in good_kl_div_chains:
-            features = np.array([trace[param].sel(chain=chain2).data.flatten() for param in cluster_features]).T
-            labels = gmm_results[chain1]["gmm"].predict(features).reshape(-1, n_clusters)
+            features = np.array(
+                [
+                    trace[param].sel(chain=chain2).data.flatten()
+                    for param in cluster_features
+                ]
+            ).T
+            labels = (
+                gmm_results[chain1]["gmm"].predict(features).reshape(-1, n_clusters)
+            )
             label_order = mode(labels, axis=0).mode
 
             # ensure all labels present
@@ -115,7 +124,9 @@ def cluster_posterior(
     # now determine which order of GMM clusters is preferred
     good_solutions = []
     for solution in solutions:
-        label_orders = np.array([label_order for label_order in solution["label_orders"].values()])
+        label_orders = np.array(
+            [label_order for label_order in solution["label_orders"].values()]
+        )
         unique_label_orders, counts = np.unique(
             label_orders,
             axis=0,
@@ -127,7 +138,9 @@ def cluster_posterior(
         solution["cloud_orders"] = {}
         for chain, label_order in solution["label_orders"].items():
             xorder = np.argsort(label_order)
-            solution["cloud_orders"][chain] = xorder[np.searchsorted(label_order[xorder], solution["label_order"])]
+            solution["cloud_orders"][chain] = xorder[
+                np.searchsorted(label_order[xorder], solution["label_order"])
+            ]
 
         # Add solutions to the trace
         coords = trace.coords.copy()
@@ -139,14 +152,19 @@ def cluster_posterior(
                 # break labeling degeneracy
                 posterior_clustered[param] = xarray.concat(
                     [
-                        samples.sel(chain=chain, cloud=cloud_order).assign_coords(cloud=range(n_clusters))
+                        samples.sel(chain=chain, cloud=cloud_order).assign_coords(
+                            cloud=range(n_clusters)
+                        )
                         for chain, cloud_order in solution["cloud_orders"].items()
                     ],
                     dim="chain",
                 )
             else:
                 posterior_clustered[param] = xarray.concat(
-                    [samples.sel(chain=chain) for chain in solution["cloud_orders"].keys()],
+                    [
+                        samples.sel(chain=chain)
+                        for chain in solution["cloud_orders"].keys()
+                    ],
                     dim="chain",
                 )
             dims[param] = list(samples.dims)

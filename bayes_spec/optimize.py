@@ -7,7 +7,7 @@ Trey V. Wenger; tvwenger@gmail.com
 This code is licensed under MIT license (see LICENSE for details)
 """
 
-from typing import Type
+from typing import Type, Optional, Iterable
 
 import numpy as np
 
@@ -118,7 +118,7 @@ class Optimize:
 
         # Check if there are no solutions or multiple solutions
         if len(self.models[n_cloud].trace.posterior.chain) > 1:
-            if len(self.models[n_cloud].solutions) != 1:
+            if len(self.models[n_cloud].solutions) != 1:  # pragma: no cover
                 return True
 
         # Get last non-inf BIC
@@ -155,34 +155,60 @@ class Optimize:
         for n_cloud in self.n_clouds:
             self.models[n_cloud].add_likelihood(*args, **kwargs)
 
-    def fit_all(self, **kwargs):
+    def fit_all(
+        self, start_spread: Optional[dict[str, Iterable[float]]] = None, **kwargs
+    ):
         """Fit all models using variational inference.
 
+        :param `start_spread`: Keys are parameter names and values are range, defaults to None
+        :type start_spread: Optional[dict[str, Iterable[float]]], optional
         :param `**kwargs`: Keyword arguments passed to :func:`model.fit`
         """
         if self.verbose:
             print(f"Null hypothesis BIC = {self.models[1].null_bic():.3e}")
+        if start_spread is not None and "start" not in kwargs:
+            kwargs["start"] = {}
 
         for n_cloud in self.n_clouds:
             if self.verbose:
                 print(f"Approximating n_cloud = {n_cloud} posterior...")
+
+            if start_spread is not None:
+                for key, value in start_spread.items():
+                    kwargs["start"][key] = np.linspace(value[0], value[1], n_cloud)
+
             self.models[n_cloud].fit(**kwargs)
             if self.verbose:
                 bic = self.models[n_cloud].bic(chain=[0])
                 print(f"n_cloud = {n_cloud} BIC = {bic:.3e}")
                 print()
 
-    def sample_all(self, **kwargs):
+    def sample_all(
+        self, start_spread: Optional[dict[str, Iterable[float]]] = None, **kwargs
+    ):
         """Sample posterior distribution of all models using MCMC.
 
+        :param `start_spread`: Keys are parameter names and values are range, defaults to None
+        :type start_spread: Optional[dict[str, Iterable[float]]], optional
         :param `**kwargs`: Keyword arguments passed to :func:`model.sample`
         """
         if self.verbose:
             print(f"Null hypothesis BIC = {self.models[1].null_bic():.3e}")
+        if start_spread is not None and "init_kwargs" not in kwargs:
+            kwargs["init_kwargs"] = {}
+        if start_spread is not None and "start" not in kwargs["init_kwargs"]:
+            kwargs["init_kwargs"]["start"] = {}
 
         for n_cloud in self.n_clouds:
             if self.verbose:
                 print(f"Sampling n_cloud = {n_cloud} posterior...")
+
+            if start_spread is not None:
+                for key, value in start_spread.items():
+                    kwargs["init_kwargs"]["start"][key] = np.linspace(
+                        value[0], value[1], n_cloud
+                    )
+
             self.models[n_cloud].sample(**kwargs)
             self.models[n_cloud].solve()
             if self.verbose:
@@ -205,6 +231,7 @@ class Optimize:
         for n_cloud in self.n_clouds:
             if self.verbose:
                 print(f"Sampling n_cloud = {n_cloud} posterior...")
+
             self.models[n_cloud].sample_smc(**kwargs)
             self.models[n_cloud].solve()
             if self.verbose:
@@ -220,8 +247,9 @@ class Optimize:
         self,
         bic_threshold: float = 10.0,
         kl_div_threshold: float = 0.1,
-        fit_kwargs: dict = {},
-        sample_kwargs: dict = {},
+        fit_kwargs: Optional[dict] = None,
+        sample_kwargs: Optional[dict] = None,
+        start_spread: Optional[dict[str, Iterable[float]]] = None,
         smc: bool = False,
         approx: bool = True,
     ):
@@ -238,10 +266,12 @@ class Optimize:
         :type bic_threshold: float, optional
         :param `kl_div_threshold`: GMM convergence threshold
         :type kl_div_threshold: float, optional
-        :param fit_kwargs: Keyword arguments passed to :func:`fit`, defaults to {}
-        :type fit_kwargs: dict, optional
-        :param sample_kwargs: Keyword arguments passed to :func:`sample`, defaults to {}
-        :type sample_kwargs: dict, optional
+        :param fit_kwargs: Keyword arguments passed to :func:`fit`, defaults to None
+        :type fit_kwargs: Optional[dict], optional
+        :param sample_kwargs: Keyword arguments passed to :func:`sample`, defaults to None
+        :type sample_kwargs: Optional[dict], optional
+        :param `start_spread`: Keys are parameter names and values are range, defaults to None
+        :type start_spread: Optional[dict[str, Iterable[float]]], optional
         :param smc: If True, sample all models using SMC, defaults to False
         :type smc: bool, optional
         :param approx: If True, approximate all models using VI, defaults to True
@@ -249,6 +279,18 @@ class Optimize:
         """
         if self.verbose:
             print(f"Null hypothesis BIC = {self.models[1].null_bic():.3e}")
+        if fit_kwargs is None:
+            fit_kwargs = {}
+        if sample_kwargs is None:
+            sample_kwargs = {}
+        print("CHECK", fit_kwargs)
+
+        if start_spread is not None and "start" not in fit_kwargs:
+            fit_kwargs["start"] = {}
+        if start_spread is not None and "init_kwargs" not in sample_kwargs:
+            sample_kwargs["init_kwargs"] = {}
+        if start_spread is not None and "start" not in sample_kwargs["init_kwargs"]:
+            sample_kwargs["init_kwargs"]["start"] = {}
 
         stop = False
         for n_cloud in self.n_clouds:
@@ -256,6 +298,16 @@ class Optimize:
                 # fit with VI
                 if self.verbose:
                     print(f"Approximating n_cloud = {n_cloud} posterior...")
+
+                if start_spread is not None:
+                    for key, value in start_spread.items():
+                        fit_kwargs["start"][key] = np.linspace(
+                            value[0], value[1], n_cloud
+                        )
+
+                print("Check", start_spread)
+                print(n_cloud)
+                print(fit_kwargs)
                 self.models[n_cloud].fit(**fit_kwargs)
                 if self.verbose:
                     bic = self.models[n_cloud].bic(chain=[0])
@@ -269,6 +321,12 @@ class Optimize:
                     # sample with SMC
                     self.models[n_cloud].sample_smc(**sample_kwargs)
                 else:
+                    if start_spread is not None:
+                        for key, value in start_spread.items():
+                            sample_kwargs["init_kwargs"]["start"][key] = np.linspace(
+                                value[0], value[1], n_cloud
+                            )
+
                     # sample with MCMC
                     self.models[n_cloud].sample(**sample_kwargs)
                 self.models[n_cloud].solve()
@@ -315,5 +373,11 @@ class Optimize:
                 if smc:
                     self.best_model.sample_smc(**sample_kwargs)
                 else:
+                    if start_spread is not None:
+                        for key, value in start_spread.items():
+                            sample_kwargs["init_kwargs"]["start"][key] = np.linspace(
+                                value[0], value[1], best_n_clouds
+                            )
+
                     self.best_model.sample(**sample_kwargs)
                 self.best_model.solve(kl_div_threshold=kl_div_threshold)

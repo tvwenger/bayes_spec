@@ -6,6 +6,8 @@ Trey V. Wenger; tvwenger@gmail.com
 This code is licensed under MIT license (see LICENSE for details)
 """
 
+from typing import Optional
+
 import pymc as pm
 from pymc.variational.callbacks import CheckParametersConvergence
 from pymc.step_methods.hmc import quadpotential
@@ -19,6 +21,7 @@ def init_nuts(
     rel_tolerance: float = 0.001,
     abs_tolerance: float = 0.001,
     learning_rate: float = 1e-3,
+    start: Optional[dict] = None,
     nuts_kwargs: dict = None,
     seed: int = 1234,
     verbose: bool = False,
@@ -39,6 +42,8 @@ def init_nuts(
     :type abs_tolerance: float, optional
     :param learning_rate: VI learning rate, defaults to 1e-3
     :type learning_rate: float, optional
+    :param start: Starting point, defaults to None
+    :type start: Optional[dict], optional
     :param nuts_kwargs: Additional keyword arguments passed to :class:`pm.NUTS`, defaults to None
     :type nuts_kwargs: dict, optional
     :param seed: Random seed, defaults to 1234
@@ -68,6 +73,7 @@ def init_nuts(
                 n=n_init,
                 method="advi",
                 model=model,
+                start=start,
                 callbacks=callbacks,
                 progressbar=verbose,
                 obj_optimizer=pm.adagrad_window(learning_rate=learning_rate),
@@ -89,7 +95,8 @@ def init_nuts(
         # Filter deterministics from initial_points
         value_var_names = [var.name for var in model.value_vars]
         initial_points = [
-            {k: v for k, v in initial_point.items() if k in value_var_names} for initial_point in initial_points
+            {k: v for k, v in initial_point.items() if k in value_var_names}
+            for initial_point in initial_points
         ]
 
     return initial_points, step

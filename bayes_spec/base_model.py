@@ -99,9 +99,11 @@ class BaseModel(ABC):
     ) -> Iterable[str]:
         """Get a subset of the model parameter names.
 
-        :param dims: Select only parameters with this dimension name. If None, select dimensionless parameters, defaults to None
+        :param dims: Select only parameters with this dimension name. If None, select dimensionless
+            parameters, defaults to None
         :type dims: Optional[str], optional
-        :param deterministics: If True, select deterministic parameters, otherwise free parameters, defaults to False
+        :param deterministics: If True, select deterministic parameters, otherwise free
+            parameters, defaults to False
         :type deterministics: bool, optional
         :return: Parameter names matching selection
         :rtype: Iterable[str]
@@ -284,8 +286,8 @@ class BaseModel(ABC):
     ) -> float:
         """Evaluate mean log-likelihood over posterior samples.
 
-        :param chain: Evaluate mean log-likelihood for this chain using un-clustered posterior samples. If `None` evaluate
-            across all chains using clustered posterior samples, defaults to None
+        :param chain: Evaluate mean log-likelihood for this chain using un-clustered posterior samples.
+            If `None` evaluate across all chains using clustered posterior samples, defaults to None
         :type chain: Optional[int], optional
         :param solution: Evaluate mean log-likelihood for this solution. If `None` use the unique solution if any.
             If :param:chain is not None, this parameter has no effect, defaults to None
@@ -343,7 +345,8 @@ class BaseModel(ABC):
         for key, coeffs in prior_baseline_coeffs.items():
             if len(coeffs) != self.baseline_degree + 1:
                 raise ValueError(
-                    f"{key} baseline coefficient prior must have length `baseline_degree+1` = {self.baseline_degree + 1}"
+                    f"{key} baseline coefficient prior must have length "
+                    + f"`baseline_degree+1` = {self.baseline_degree + 1}"
                 )
 
         with self.model:
@@ -655,7 +658,9 @@ class BaseModel(ABC):
         assigned_chains = []
         for solution in solutions:
             assigned_chains += list(solution["label_orders"].keys())
-        if self.verbose and len(assigned_chains) < len(self.trace.posterior.chain):
+        if self.verbose and len(assigned_chains) < len(
+            self.trace.posterior.chain
+        ):  # pragma: no cover
             print(
                 f"{len(assigned_chains)} of {len(self.trace.posterior.chain)} chains appear converged."
             )
