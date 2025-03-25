@@ -45,17 +45,19 @@ class ModelC(ModelB):
         with self.model:
             _ = pm.Normal(
                 "observation",
-                mu=np.ones_like(self.data["observation"].spectral) * self.model["z"].sum(),
+                mu=np.ones_like(self.data["observation"].spectral)
+                * self.model["z"].sum(),
                 sigma=self.data["observation"].noise,
                 observed=self.data["observation"].brightness,
             )
 
 
-def test_valid():
-    spectral = np.linspace(-5.0, 10.0, 1000)
-    brightness = 10.0 * _RNG.randn(1000) + 10.0
-    data = {"observation": SpecData(spectral, brightness, 1.0)}
+spectral = np.linspace(-5.0, 10.0, 1000)
+brightness = 10.0 * _RNG.randn(1000) + 10.0
+data = {"observation": SpecData(spectral, brightness, 1.0)}
 
+
+def test_valid():
     with pytest.raises(TypeError):
         _ = ModelA(data, 1)
     with pytest.raises(TypeError):
@@ -65,10 +67,6 @@ def test_valid():
 
 
 def test_attributes():
-    spectral = np.linspace(-5.0, 10.0, 1000)
-    brightness = 10.0 * _RNG.randn(1000) + 10.0
-    data = {"observation": SpecData(spectral, brightness, 1.0)}
-
     model = ModelC(data, 2, baseline_degree=3, seed=1234, verbose=True)
     model.add_priors()
     with pytest.raises(ValueError):
@@ -93,6 +91,12 @@ def test_attributes():
         _ = model.unique_solution
     assert isinstance(model.labeller, azl.MapLabeller)
     assert model._validate()
+
+
+def test_baseline():
+    model = ModelC(data, 2, baseline_degree=3, seed=1234, verbose=True)
+    model.add_priors()
+    model.add_likelihood()
 
     baseline_params = {
         "baseline_observation_norm": [0.0, 0.0, 0.0, 0.0],
