@@ -101,8 +101,7 @@ class Optimize:
     def _check_stop(self, n_cloud: int, bic_threshold: float = 10.0):
         """Check if any of the stopping criteria are met. Stopping criteria are:
         1. Model did not converge
-        2. Model has multiple solutions (excludeing VI results, which only have one chain)
-        3. BIC did not improve by more than bic_threshold over previous model
+        2. BIC did not improve by more than bic_threshold over previous model
 
         :param `n_cloud`: model to check
         :type n_cloud: int
@@ -116,9 +115,12 @@ class Optimize:
         if self.models[n_cloud].trace is None:  # pragma: no cover
             return True
 
-        # Check if there are no solutions or multiple solutions
+        # Check if there are no solutions
         if len(self.models[n_cloud].trace.posterior.chain) > 1:
-            if len(self.models[n_cloud].solutions) != 1:  # pragma: no cover
+            if (
+                self.models[n_cloud].solutions is None
+                or len(self.models[n_cloud].solutions) == 0
+            ):  # pragma: no cover
                 return True
 
         # Get last non-inf BIC
@@ -184,10 +186,15 @@ class Optimize:
                 print()
 
     def sample_all(
-        self, start_spread: Optional[dict[str, Iterable[float]]] = None, **kwargs
+        self,
+        kl_div_threshold: float = 0.1,
+        start_spread: Optional[dict[str, Iterable[float]]] = None,
+        **kwargs,
     ):
         """Sample posterior distribution of all models using MCMC.
 
+        :param `kl_div_threshold`: GMM convergence threshold
+        :type kl_div_threshold: float, optional
         :param `start_spread`: Keys are parameter names and values are range, defaults to None
         :type start_spread: Optional[dict[str, Iterable[float]]], optional
         :param `**kwargs`: Keyword arguments passed to :func:`model.sample`
@@ -210,7 +217,7 @@ class Optimize:
                     )
 
             self.models[n_cloud].sample(**kwargs)
-            self.models[n_cloud].solve()
+            self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
             if self.verbose:
                 for solution in self.models[n_cloud].solutions:
                     print(
@@ -220,9 +227,11 @@ class Optimize:
                     )
                 print()
 
-    def sample_smc_all(self, **kwargs):
+    def sample_smc_all(self, kl_div_threshold: float = 0.1, **kwargs):
         """Sample posterior distribution of all models using sequential Monte Carlo.
 
+        :param `kl_div_threshold`: GMM convergence threshold
+        :type kl_div_threshold: float, optional
         :param `**kwargs`: Keyword arguments passed to :func:`model.sample_smc`
         """
         if self.verbose:
@@ -233,7 +242,7 @@ class Optimize:
                 print(f"Sampling n_cloud = {n_cloud} posterior...")
 
             self.models[n_cloud].sample_smc(**kwargs)
-            self.models[n_cloud].solve()
+            self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
             if self.verbose:
                 for solution in self.models[n_cloud].solutions:
                     print(
@@ -283,7 +292,6 @@ class Optimize:
             fit_kwargs = {}
         if sample_kwargs is None:
             sample_kwargs = {}
-        print("CHECK", fit_kwargs)
 
         if start_spread is not None and "start" not in fit_kwargs:
             fit_kwargs["start"] = {}
@@ -305,9 +313,6 @@ class Optimize:
                             value[0], value[1], n_cloud
                         )
 
-                print("Check", start_spread)
-                print(n_cloud)
-                print(fit_kwargs)
                 self.models[n_cloud].fit(**fit_kwargs)
                 if self.verbose:
                     bic = self.models[n_cloud].bic(chain=[0])
@@ -329,7 +334,7 @@ class Optimize:
 
                     # sample with MCMC
                     self.models[n_cloud].sample(**sample_kwargs)
-                self.models[n_cloud].solve()
+                self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
                 if self.verbose:
                     for solution in self.models[n_cloud].solutions:
                         print(
