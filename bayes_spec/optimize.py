@@ -120,7 +120,7 @@ class Optimize:
             if (
                 self.models[n_cloud].solutions is None
                 or len(self.models[n_cloud].solutions) == 0
-            ):
+            ):  # pragma: no cover
                 return True
 
         # Get last non-inf BIC
@@ -292,7 +292,6 @@ class Optimize:
             fit_kwargs = {}
         if sample_kwargs is None:
             sample_kwargs = {}
-        print("CHECK", fit_kwargs)
 
         if start_spread is not None and "start" not in fit_kwargs:
             fit_kwargs["start"] = {}
@@ -314,9 +313,6 @@ class Optimize:
                             value[0], value[1], n_cloud
                         )
 
-                print("Check", start_spread)
-                print(n_cloud)
-                print(fit_kwargs)
                 self.models[n_cloud].fit(**fit_kwargs)
                 if self.verbose:
                     bic = self.models[n_cloud].bic(chain=[0])
