@@ -206,8 +206,6 @@ class BaseModel(ABC):
         :return: True if there is a unique solution, False otherwise
         :rtype: bool
         """
-        if self.solutions is None or len(self.solutions) == 0:
-            raise ValueError("No solutions. Try solve()")
         return len(self.solutions) == 1
 
     @property
@@ -243,7 +241,7 @@ class BaseModel(ABC):
         """Reset results and convergence checks."""
         self.approx: pm.Approximation = None
         self.trace: az.InferenceData = None
-        self.solutions: list = None
+        self.solutions: list = []
         self._chains_converged: bool = None
 
     def graph(self) -> graphviz.sources.Source:
@@ -644,9 +642,8 @@ class BaseModel(ABC):
             print("No solution found!")
 
         # convergence checks
-        unique_solution = len(solutions) == 1
         if self.verbose:
-            if unique_solution:
+            if self.unique_solution:  # pragma: no cover
                 print("GMM converged to unique solution")
             elif len(solutions) > 1:  # pragma: no cover
                 print(f"GMM found {len(solutions)} unique solutions")
