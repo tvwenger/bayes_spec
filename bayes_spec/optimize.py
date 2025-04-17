@@ -117,10 +117,7 @@ class Optimize:
 
         # Check if there are no solutions
         if len(self.models[n_cloud].trace.posterior.chain) > 1:
-            if (
-                self.models[n_cloud].solutions is None
-                or len(self.models[n_cloud].solutions) == 0
-            ):  # pragma: no cover
+            if len(self.models[n_cloud].solutions) == 0:  # pragma: no cover
                 return True
 
         # Get last non-inf BIC
@@ -179,10 +176,14 @@ class Optimize:
                 for key, value in start_spread.items():
                     kwargs["start"][key] = np.linspace(value[0], value[1], n_cloud)
 
-            self.models[n_cloud].fit(**kwargs)
-            if self.verbose:
-                bic = self.models[n_cloud].bic(chain=[0])
-                print(f"n_cloud = {n_cloud} BIC = {bic:.3e}")
+            try:
+                self.models[n_cloud].fit(**kwargs)
+                if self.verbose:
+                    bic = self.models[n_cloud].bic(chain=[0])
+                    print(f"n_cloud = {n_cloud} BIC = {bic:.3e}")
+                    print()
+            except Exception as ex:  # pragma: no cover
+                print(f"!!! EXCEPTION n_cloud = {n_cloud} !!!: {ex}")
                 print()
 
     def sample_all(
@@ -216,15 +217,19 @@ class Optimize:
                         value[0], value[1], n_cloud
                     )
 
-            self.models[n_cloud].sample(**kwargs)
-            self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
-            if self.verbose:
-                for solution in self.models[n_cloud].solutions:
-                    print(
-                        f"n_cloud = {n_cloud} "
-                        + f"solution = {solution} "
-                        + f"BIC = {self.models[n_cloud].bic(solution=solution):.3e}"
-                    )
+            try:
+                self.models[n_cloud].sample(**kwargs)
+                self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
+                if self.verbose:
+                    for solution in self.models[n_cloud].solutions:
+                        print(
+                            f"n_cloud = {n_cloud} "
+                            + f"solution = {solution} "
+                            + f"BIC = {self.models[n_cloud].bic(solution=solution):.3e}"
+                        )
+                    print()
+            except Exception as ex:  # pragma: no cover
+                print(f"!!! EXCEPTION n_cloud = {n_cloud} !!!: {ex}")
                 print()
 
     def sample_smc_all(self, kl_div_threshold: float = 0.1, **kwargs):
@@ -241,15 +246,19 @@ class Optimize:
             if self.verbose:
                 print(f"Sampling n_cloud = {n_cloud} posterior...")
 
-            self.models[n_cloud].sample_smc(**kwargs)
-            self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
-            if self.verbose:
-                for solution in self.models[n_cloud].solutions:
-                    print(
-                        f"n_cloud = {n_cloud} "
-                        + f"solution = {solution} "
-                        + f"BIC = {self.models[n_cloud].bic(solution=solution):.3e}"
-                    )
+            try:
+                self.models[n_cloud].sample_smc(**kwargs)
+                self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
+                if self.verbose:
+                    for solution in self.models[n_cloud].solutions:
+                        print(
+                            f"n_cloud = {n_cloud} "
+                            + f"solution = {solution} "
+                            + f"BIC = {self.models[n_cloud].bic(solution=solution):.3e}"
+                        )
+                    print()
+            except Exception as ex:  # pragma: no cover
+                print(f"!!! EXCEPTION n_cloud = {n_cloud} !!!: {ex}")
                 print()
 
     def optimize(
@@ -302,47 +311,51 @@ class Optimize:
 
         stop = False
         for n_cloud in self.n_clouds:
-            if approx:
-                # fit with VI
-                if self.verbose:
-                    print(f"Approximating n_cloud = {n_cloud} posterior...")
+            try:
+                if approx:
+                    # fit with VI
+                    if self.verbose:
+                        print(f"Approximating n_cloud = {n_cloud} posterior...")
 
-                if start_spread is not None:
-                    for key, value in start_spread.items():
-                        fit_kwargs["start"][key] = np.linspace(
-                            value[0], value[1], n_cloud
-                        )
-
-                self.models[n_cloud].fit(**fit_kwargs)
-                if self.verbose:
-                    bic = self.models[n_cloud].bic(chain=[0])
-                    print(f"n_cloud = {n_cloud} BIC = {bic:.3e}")
-                    print()
-
-            else:
-                if self.verbose:
-                    print(f"Sampling n_cloud = {n_cloud} posterior...")
-                if smc:
-                    # sample with SMC
-                    self.models[n_cloud].sample_smc(**sample_kwargs)
-                else:
                     if start_spread is not None:
                         for key, value in start_spread.items():
-                            sample_kwargs["init_kwargs"]["start"][key] = np.linspace(
+                            fit_kwargs["start"][key] = np.linspace(
                                 value[0], value[1], n_cloud
                             )
 
-                    # sample with MCMC
-                    self.models[n_cloud].sample(**sample_kwargs)
-                self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
-                if self.verbose:
-                    for solution in self.models[n_cloud].solutions:
-                        print(
-                            f"n_cloud = {n_cloud} "
-                            + f"solution = {solution} "
-                            + f"BIC = {self.models[n_cloud].bic(solution=solution):.3e}"
-                        )
-                    print()
+                    self.models[n_cloud].fit(**fit_kwargs)
+                    if self.verbose:
+                        bic = self.models[n_cloud].bic(chain=[0])
+                        print(f"n_cloud = {n_cloud} BIC = {bic:.3e}")
+                        print()
+
+                else:
+                    if self.verbose:
+                        print(f"Sampling n_cloud = {n_cloud} posterior...")
+                    if smc:
+                        # sample with SMC
+                        self.models[n_cloud].sample_smc(**sample_kwargs)
+                    else:
+                        if start_spread is not None:
+                            for key, value in start_spread.items():
+                                sample_kwargs["init_kwargs"]["start"][key] = np.linspace(
+                                    value[0], value[1], n_cloud
+                                )
+
+                        # sample with MCMC
+                        self.models[n_cloud].sample(**sample_kwargs)
+                    self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
+                    if self.verbose:
+                        for solution in self.models[n_cloud].solutions:
+                            print(
+                                f"n_cloud = {n_cloud} "
+                                + f"solution = {solution} "
+                                + f"BIC = {self.models[n_cloud].bic(solution=solution):.3e}"
+                            )
+                        print()
+            except Exception as ex:  # pragma: no cover
+                print(f"!!! EXCEPTION n_cloud = {n_cloud} !!!: {ex}")
+                print()
 
             # check stopping criteria
             if self._check_stop(n_cloud, bic_threshold=bic_threshold):
@@ -370,19 +383,21 @@ class Optimize:
             self.best_model = self.models[best_n_clouds]
 
             if approx:
-                # sample best
-                if self.verbose:
-                    print(
-                        f"Sampling best model (n_cloud = {self.best_model.n_clouds})..."
-                    )
-                if smc:
-                    self.best_model.sample_smc(**sample_kwargs)
-                else:
-                    if start_spread is not None:
-                        for key, value in start_spread.items():
-                            sample_kwargs["init_kwargs"]["start"][key] = np.linspace(
-                                value[0], value[1], best_n_clouds
-                            )
+                try:
+                    # sample best
+                    if self.verbose:
+                        print(f"Sampling best model (n_cloud = {best_n_clouds})...")
+                    if smc:
+                        self.best_model.sample_smc(**sample_kwargs)
+                    else:
+                        if start_spread is not None:
+                            for key, value in start_spread.items():
+                                sample_kwargs["init_kwargs"]["start"][key] = np.linspace(
+                                    value[0], value[1], best_n_clouds
+                                )
 
-                    self.best_model.sample(**sample_kwargs)
-                self.best_model.solve(kl_div_threshold=kl_div_threshold)
+                        self.best_model.sample(**sample_kwargs)
+                    self.best_model.solve(kl_div_threshold=kl_div_threshold)
+                except Exception as ex:  # pragma: no cover
+                    print(f"!!! EXCEPTION n_cloud = {best_n_clouds} !!!: {ex}")
+                    print()

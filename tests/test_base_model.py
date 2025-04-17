@@ -87,8 +87,7 @@ def test_attributes():
     assert model._n_params == 7
     with pytest.raises(ValueError):
         _ = model._get_unique_solution
-    with pytest.raises(ValueError):
-        _ = model.unique_solution
+    assert not model.unique_solution
     assert isinstance(model.labeller, azl.MapLabeller)
     assert model._validate()
 
