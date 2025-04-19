@@ -643,7 +643,7 @@ class BaseModel(ABC):
 
         # convergence checks
         if self.verbose:
-            if self.unique_solution:  # pragma: no cover
+            if len(solutions) == 1:
                 print("GMM converged to unique solution")
             elif len(solutions) > 1:  # pragma: no cover
                 print(f"GMM found {len(solutions)} unique solutions")
