@@ -145,7 +145,7 @@ def plot_pair(
         combine_dims = set(combine_dims)
 
     size = int(2.0 * (len(var_names) + 1))
-    if not combine_dims and "cloud" in trace.dims:
+    if not combine_dims and "cloud" in trace.dims:  # pragma: no cover
         size = int(2.0 * (len(var_names) * len(trace.cloud) + 1))
 
     textsize = int(np.sqrt(size)) + 8
