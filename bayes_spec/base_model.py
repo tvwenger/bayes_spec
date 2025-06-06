@@ -230,7 +230,9 @@ class BaseModel(ABC):
             raise ValueError("No observed variables found! Did you add_likelihood()?")
 
         # check that model can be evaluated
-        if not np.isfinite(self.model.logp().eval(self.model.initial_point())):
+        if not np.isfinite(
+            self.model.logp().eval(self.model.initial_point())
+        ):  # pragma: no cover
             raise ValueError(
                 "Model initial point is not finite! Mis-specified model or bad priors?"
             )
@@ -239,7 +241,10 @@ class BaseModel(ABC):
 
     def reset_results(self):
         """Reset results and convergence checks."""
-        self.approx: pm.Approximation = None
+        self.mean_field = None
+        self.approx = None
+        self.fit_mean = None
+        self.fit_std = None
         self.trace: az.InferenceData = None
         self.solutions: list = []
         self._chains_converged: bool = None
@@ -445,9 +450,11 @@ class BaseModel(ABC):
         self,
         n: int = 100_000,
         draws: int = 1_000,
-        rel_tolerance: float = 0.001,
-        abs_tolerance: float = 0.001,
-        learning_rate: float = 1e-3,
+        rel_tolerance: float = 0.01,
+        abs_tolerance: float = 0.01,
+        learning_rate: float = 0.001,
+        obj_n_mc: int = 5,
+        start: Optional[dict] = None,
         **kwargs,
     ):
         """Approximate posterior distribution using Variational Inference (VI).
@@ -456,13 +463,17 @@ class BaseModel(ABC):
         :type n: int, optional
         :param draws: Number of posterior samples to draw, defaults to 1_000
         :type draws: int, optional
-        :param rel_tolerance: Relative parameter tolerance for VI convergence, defaults to 0.001
+        :param rel_tolerance: Relative parameter tolerance for VI convergence, defaults to 0.01
         :type rel_tolerance: float, optional
-        :param abs_tolerance: Absolute parameter tolerance for VI convergence, defaults to 0.001
+        :param abs_tolerance: Absolute parameter tolerance for VI convergence, defaults to 0.01
         :type abs_tolerance: float, optional
         :param learning_rate: VI learning rate, defaults to 1e-3
         :type learning_rate: float, optional
-        :param `**kwargs`: Additional arguments passed to :func:`pymc.fit`
+        :param obj_n_mc: Number of Monte Carlo gradient samples, defaults to 5
+        :type obj_n_mc: int, optional
+        :param start: Starting point, defaults to None
+        :type start: Optional[dict], optional
+        :param `**kwargs`: Additional arguments passed to :func:`advi.fit`
         """
         # validate
         assert self._validate()
@@ -471,22 +482,33 @@ class BaseModel(ABC):
         self.reset_results()
 
         with self.model:
+            self.mean_field = pm.ADVI(
+                random_seed=self.seed,
+                start=start,
+            )
+            tracker = pm.callbacks.Tracker(
+                mean=self.mean_field.approx.mean.eval,
+                std=self.mean_field.approx.std.eval,
+            )
             callbacks = [
+                tracker,
                 CheckParametersConvergence(tolerance=rel_tolerance, diff="relative"),
                 CheckParametersConvergence(tolerance=abs_tolerance, diff="absolute"),
             ]
-            self.approx = pm.fit(
+            self.approx: pm.Approximation = self.mean_field.fit(
                 n=n,
-                random_seed=self.seed,
                 progressbar=self.verbose,
                 callbacks=callbacks,
-                obj_optimizer=pm.adagrad_window(learning_rate=learning_rate),
+                obj_n_mc=obj_n_mc,
+                obj_optimizer=pm.adagrad_window(learning_rate=learning_rate, n_win=10),
                 **kwargs,
             )
+            self.fit_mean = np.array(tracker["mean"])
+            self.fit_std = np.array(tracker["std"])
             self.trace = self.approx.sample(draws)
-
-        with self.model:
-            pm.compute_log_likelihood(self.trace)
+            if self.verbose:
+                print("Adding log-likelihood to trace")
+            pm.compute_log_likelihood(self.trace, progressbar=self.verbose)
 
     def sample(
         self,
@@ -572,12 +594,9 @@ class BaseModel(ABC):
                 **nuts_kwargs,
                 **kwargs,
             )
-
-        # add log-likelihood to trace
-        if self.verbose:
-            print("Adding log-likelihood to trace")
-        with frozen_model:
-            pm.compute_log_likelihood(self.trace)
+            if self.verbose:
+                print("Adding log-likelihood to trace")
+            pm.compute_log_likelihood(self.trace, progressbar=self.verbose)
 
         # diagnostics
         if self.verbose:
@@ -607,11 +626,8 @@ class BaseModel(ABC):
                 compute_convergence_checks=False,
                 **kwargs,
             )
-
-        # add log-likelihood to trace
-        if self.verbose:
-            print("Adding log-likelihood to trace")
-        with self.model:
+            if self.verbose:
+                print("Adding log-likelihood to trace")
             pm.compute_log_likelihood(self.trace, progressbar=self.verbose)
 
     def solve(self, num_gmm_samples: float = 10_000, kl_div_threshold: float = 0.1):

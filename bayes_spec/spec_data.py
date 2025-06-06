@@ -35,7 +35,7 @@ class SpecData:
         :param ylabel: Label for brightness axis, defaults to "Brightness"
         :type ylabel: str, optional
         :raises ValueError: Size mis-match between :param:`spectral` and :param:`brightness`
-        :raises ValueError: :param:`noise` is not a scalar and there is a size mis-match between :param:`brightness` and :param:`noise`
+        :raises ValueError: :param:`noise` is not a scalar and there is a size mismatch between :param:`brightness` and :param:`noise`
         """
         if len(spectral) != len(brightness):
             raise ValueError("size mismatch between brightness and spectral")
@@ -57,7 +57,7 @@ class SpecData:
         self.spectral_norm = self.normalize_spectral(self.spectral)
 
         # normalize brightness data using standard normalization
-        self._brightness_offset = np.median(self.brightness)
+        self._brightness_offset = 0.0
         self._brightness_scale = np.median(self.noise)
         self.brightness_norm = self.normalize_brightness(brightness)
 
@@ -127,4 +127,6 @@ class SpecData:
         :return: Un-normalized brightness data
         :rtype: float
         """
-        return self._unnormalize(norm_x, self._brightness_offset, self._brightness_scale)
+        return self._unnormalize(
+            norm_x, self._brightness_offset, self._brightness_scale
+        )

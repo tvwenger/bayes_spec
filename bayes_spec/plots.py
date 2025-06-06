@@ -84,6 +84,7 @@ def plot_predictive(
 def plot_pair(
     trace: az.InferenceData,
     var_names: list[str],
+    combine_dims: Optional[list[str]] = None,
     labeller: Optional[azl.MapLabeller] = None,
     kind: str = "scatter",
     reference_values: Optional[dict] = None,
@@ -98,6 +99,8 @@ def plot_pair(
     :type trace: az.InferenceData
     :param var_names: Parameter names to plot
     :type var_names: list[str]
+    :param combine_dims: Dimensions to combine, by default None == []
+    :type combine_dims: Optional[list[str]]
     :param labeller: `arviz` labeler, defaults to None
     :type labeller: Optional[azl.MapLabeller], optional
     :param kind: plot kind, one of "scatter", "hexbin", or "kde", defaults to "scatter"
@@ -146,7 +149,7 @@ def plot_pair(
             axes = az.plot_pair(
                 trace,
                 var_names=var_names,
-                combine_dims={"cloud"},
+                combine_dims={combine_dims},
                 kind=kind,
                 figsize=(size, size),
                 labeller=labeller,

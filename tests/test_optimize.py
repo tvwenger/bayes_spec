@@ -18,7 +18,7 @@ spectral = np.linspace(-100.0, 100.0, 1000)
 dummy_brightness = noise * _RNG.randn(1000)
 dummy_data = {"observation": SpecData(spectral, dummy_brightness, noise)}
 params = {
-    "line_area": [1000.0],
+    "line_area": [150.0],
     "fwhm": [25.0],
     "velocity": [10.0],
     "baseline_observation_norm": [0.0],

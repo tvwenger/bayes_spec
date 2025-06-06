@@ -155,7 +155,9 @@ class Optimize:
             self.models[n_cloud].add_likelihood(*args, **kwargs)
 
     def fit_all(
-        self, start_spread: Optional[dict[str, Iterable[float]]] = None, **kwargs
+        self,
+        start_spread: Optional[dict[str, Iterable[float]]] = None,
+        **kwargs,
     ):
         """Fit all models using variational inference.
 
@@ -181,10 +183,8 @@ class Optimize:
                 if self.verbose:
                     bic = self.models[n_cloud].bic(chain=[0])
                     print(f"n_cloud = {n_cloud} BIC = {bic:.3e}")
-                    print()
             except Exception as ex:  # pragma: no cover
                 print(f"!!! EXCEPTION n_cloud = {n_cloud} !!!: {ex}")
-                print()
 
     def sample_all(
         self,
@@ -338,8 +338,8 @@ class Optimize:
                     else:
                         if start_spread is not None:
                             for key, value in start_spread.items():
-                                sample_kwargs["init_kwargs"]["start"][key] = np.linspace(
-                                    value[0], value[1], n_cloud
+                                sample_kwargs["init_kwargs"]["start"][key] = (
+                                    np.linspace(value[0], value[1], n_cloud)
                                 )
 
                         # sample with MCMC
@@ -392,8 +392,8 @@ class Optimize:
                     else:
                         if start_spread is not None:
                             for key, value in start_spread.items():
-                                sample_kwargs["init_kwargs"]["start"][key] = np.linspace(
-                                    value[0], value[1], best_n_clouds
+                                sample_kwargs["init_kwargs"]["start"][key] = (
+                                    np.linspace(value[0], value[1], best_n_clouds)
                                 )
 
                         self.best_model.sample(**sample_kwargs)
