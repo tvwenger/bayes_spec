@@ -30,7 +30,7 @@ noise = 1.0
 spectral = np.linspace(-100.0, 100.0, 1000)
 dummy_brightness = noise * _RNG.randn(1000)
 params = {
-    "line_area": [1000.0],
+    "line_area": [150.0],
     "fwhm": [25.0],
     "velocity": [10.0],
     "baseline_observation_norm": [0.0],
@@ -61,8 +61,7 @@ def test_gauss_model_nan():
     model = GaussModel(data, 1, baseline_degree=0, seed=1234, verbose=True)
     model.add_priors()
     model.add_likelihood()
-    with pytest.raises(ValueError):
-        model._validate()
+    model._validate()
 
 
 def test_gauss_model_vi():

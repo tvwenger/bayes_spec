@@ -21,12 +21,13 @@ def init_nuts(
     rel_tolerance: float = 0.001,
     abs_tolerance: float = 0.001,
     learning_rate: float = 1e-3,
+    obj_n_mc: int = 5,
     start: Optional[dict] = None,
     nuts_kwargs: dict = None,
     seed: int = 1234,
     verbose: bool = False,
 ) -> tuple[list, pm.NUTS]:
-    """_summary_
+    """Custom NUTS initialization.
 
     :param model: Model to initialize
     :type model: pm.Model
@@ -42,6 +43,8 @@ def init_nuts(
     :type abs_tolerance: float, optional
     :param learning_rate: VI learning rate, defaults to 1e-3
     :type learning_rate: float, optional
+    :param obj_n_mc: Number of Monte Carlo gradient samples, defaults to 5
+    :type obj_n_mc: int, optional
     :param start: Starting point, defaults to None
     :type start: Optional[dict], optional
     :param nuts_kwargs: Additional keyword arguments passed to :class:`pm.NUTS`, defaults to None
@@ -76,7 +79,8 @@ def init_nuts(
                 start=start,
                 callbacks=callbacks,
                 progressbar=verbose,
-                obj_optimizer=pm.adagrad_window(learning_rate=learning_rate),
+                obj_n_mc=obj_n_mc,
+                obj_optimizer=pm.adagrad_window(learning_rate=learning_rate, n_win=10),
             )
             approx_sample = approx.sample(
                 draws=chains,
