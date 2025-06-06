@@ -141,15 +141,20 @@ def plot_pair(
             "markersize": 10,
             "linestyle": "none",
         }
+    if combine_dims is not None:
+        combine_dims = set(combine_dims)
 
     size = int(2.0 * (len(var_names) + 1))
+    if combine_dims and "cloud" in trace.dims:
+        size = int(2.0 * (len(var_names) * len(trace.cloud) + 1))
+
     textsize = int(np.sqrt(size)) + 8
     with az.rc_context(rc={"plot.max_subplots": None}):
         with warnings.catch_warnings(action="ignore"):
             axes = az.plot_pair(
                 trace,
                 var_names=var_names,
-                combine_dims={combine_dims},
+                combine_dims=combine_dims,
                 kind=kind,
                 figsize=(size, size),
                 labeller=labeller,

@@ -43,12 +43,26 @@ def test_plots():
     model.sample(
         chains=2,
         cores=2,
-        init_kwargs={"rel_tolerance": 0.01, "abs_tolerance": 0.1, "learning_rate": 1e-2},
+        init_kwargs={
+            "rel_tolerance": 0.01,
+            "abs_tolerance": 0.1,
+            "learning_rate": 1e-2,
+        },
     )
     model.solve()
     posterior = model.sample_posterior_predictive()
-    assert isinstance(plot_predictive(model.data, posterior.posterior_predictive).ravel()[0], Axes)
     assert isinstance(
-        plot_pair(model.trace.solution_0, model.cloud_deterministics, labeller=model.labeller).ravel()[0], Axes
+        plot_predictive(model.data, posterior.posterior_predictive).ravel()[0], Axes
     )
-    assert isinstance(plot_traces(model.trace.solution_0, model.cloud_deterministics).ravel()[0], Axes)
+    assert isinstance(
+        plot_pair(
+            model.trace.solution_0,
+            model.cloud_deterministics,
+            combine_dims=["cloud"],
+            labeller=model.labeller,
+        ).ravel()[0],
+        Axes,
+    )
+    assert isinstance(
+        plot_traces(model.trace.solution_0, model.cloud_deterministics).ravel()[0], Axes
+    )

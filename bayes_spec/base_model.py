@@ -448,7 +448,7 @@ class BaseModel(ABC):
 
     def fit(
         self,
-        n: int = 100_000,
+        n: int = 1_000_000,
         draws: int = 1_000,
         rel_tolerance: float = 0.01,
         abs_tolerance: float = 0.01,
@@ -459,7 +459,7 @@ class BaseModel(ABC):
     ):
         """Approximate posterior distribution using Variational Inference (VI).
 
-        :param n: Number of VI iterations, defaults to 100_000
+        :param n: Number of VI iterations, defaults to 1_000_000
         :type n: int, optional
         :param draws: Number of posterior samples to draw, defaults to 1_000
         :type draws: int, optional
@@ -513,7 +513,7 @@ class BaseModel(ABC):
     def sample(
         self,
         init: str = "advi+adapt_diag",
-        n_init: int = 100_000,
+        n_init: int = 1_000_000,
         chains: int = 4,
         init_kwargs: Optional[dict] = None,
         nuts_kwargs: Optional[dict] = None,
@@ -523,7 +523,7 @@ class BaseModel(ABC):
 
         :param init: Initialization strategy, defaults to "advi+adapt_diag"
         :type init: str, optional
-        :param n_init: Number of initialization iterations, defaults to 100_000
+        :param n_init: Number of initialization iterations, defaults to 1_000_000
         :type n_init: int, optional
         :param chains: Number of independent Markov chains, defaults to 4
         :type chains: int, optional
