@@ -58,7 +58,7 @@ def cluster_posterior(
         gmm = GaussianMixture(
             n_components=n_clusters,
             max_iter=100,
-            init_params="random_from_data",
+            init_params="k-means++",
             n_init=10,
             verbose=False,
             random_state=seed,
