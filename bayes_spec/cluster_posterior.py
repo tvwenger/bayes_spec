@@ -20,7 +20,10 @@ def cluster_posterior(
     trace: az.InferenceData,
     n_clusters: int,
     cluster_features: Iterable[str],
-    num_gmm_samples: float = 10_000,
+    num_gmm_samples: int = 10_000,
+    max_iter: int = 1_000,
+    init_params: str = "random",
+    n_init: int = 10,
     kl_div_threshold: float = 0.1,
     seed: int = 1234,
 ) -> list:
@@ -42,6 +45,12 @@ def cluster_posterior(
     :type cluster_features: Iterable[str]
     :param num_gmm_samples: Number of samples to generate from Gaussian Mixture Model (GMM), defaults to 10_000
     :type num_gmm_samples: int, optional
+    :param max_iter: Maximum number of GMM iterations, defaults to 1_000
+    :type max_iter: int, optional
+    :param init_params: GMM initialization strategy, defaults to "random"
+    :type init_params: str, optional
+    :param n_init: Number of GMM initializations, defaults to 10
+    :type n_init: int, optional
     :param kl_div_threshold: Kullback-Liebler (KL) divergence threshold, defaults to 0.1
     :type kl_div_threshold: float, optional
     :param seed: Random seed, defaults to 1234
@@ -57,9 +66,9 @@ def cluster_posterior(
         ).T
         gmm = GaussianMixture(
             n_components=n_clusters,
-            max_iter=100,
-            init_params="k-means++",
-            n_init=10,
+            max_iter=max_iter,
+            init_params=init_params,
+            n_init=n_init,
             verbose=False,
             random_state=seed,
         )
