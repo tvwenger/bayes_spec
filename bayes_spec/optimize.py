@@ -12,7 +12,6 @@ from typing import Type, Optional, Iterable
 import numpy as np
 
 from bayes_spec.base_model import BaseModel
-from bayes_spec import SpecData
 
 
 class Optimize:
@@ -23,10 +22,8 @@ class Optimize:
     def __init__(
         self,
         model_type: Type[BaseModel],
-        data: dict[str, SpecData],
+        *args,
         max_n_clouds: int = 5,
-        baseline_degree: int = 0,
-        seed: int = 1234,
         verbose: bool = False,
         **kwargs,
     ):
@@ -34,14 +31,9 @@ class Optimize:
 
         :param model_type: Model to optimize
         :type model_type: Type[BaseModel]
-        :param data: Spectral data sets, where the "key" defines the name of the dataset
-        :type data: dict[str, SpecData]
+        :param `**args`: Additional arguments passed to :param:`model` initialization
         :param max_n_clouds: Maximum number of clouds to fit, defaults to 5
         :type max_n_clouds: int, optional
-        :param baseline_degree: Polynomial baseline degree, defaults to 0
-        :type baseline_degree: int, optional
-        :param seed: Random seed, defaults to 1234
-        :type seed: int, optional
         :param verbose: Verbose output, defaults to False
         :type verbose: bool, optional
         :param `**kwargs`: Additional keyword arguments passed to :param:`model` initialization
@@ -50,17 +42,13 @@ class Optimize:
         self.max_n_clouds = max_n_clouds
         self.verbose = verbose
         self.n_clouds = [i for i in range(1, self.max_n_clouds + 1)]
-        self.seed = seed
-        self.data = data
 
         # Initialize models
         self.models: dict[int, Type[BaseModel]] = {}
         for n_cloud in self.n_clouds:
             self.models[n_cloud] = model_type(
-                self.data,
-                n_cloud,
-                baseline_degree,
-                seed=seed,
+                *args,
+                n_clouds=n_cloud,
                 verbose=self.verbose,
                 **kwargs,
             )
@@ -188,24 +176,30 @@ class Optimize:
 
     def sample_all(
         self,
-        kl_div_threshold: float = 0.1,
         start_spread: Optional[dict[str, Iterable[float]]] = None,
-        **kwargs,
+        sample_kwargs: Optional[dict] = None,
+        solve_kwargs: Optional[dict] = None,
     ):
         """Sample posterior distribution of all models using MCMC.
 
-        :param `kl_div_threshold`: GMM convergence threshold
-        :type kl_div_threshold: float, optional
         :param `start_spread`: Keys are parameter names and values are range, defaults to None
         :type start_spread: Optional[dict[str, Iterable[float]]], optional
-        :param `**kwargs`: Keyword arguments passed to :func:`model.sample`
+        :param sample_kwargs: Keyword arguments passed to :func:`sample`, defaults to None
+        :type sample_kwargs: Optional[dict], optional
+        :param solve_kwargs: Keyword arguments passed to :func:`solve`, defaults to None
+        :type solve_kwargs: Optional[dict], optional
         """
+        if sample_kwargs is None:
+            sample_kwargs = {}
+        if solve_kwargs is None:
+            solve_kwargs = {}
+
         if self.verbose:
             print(f"Null hypothesis BIC = {self.models[1].null_bic():.3e}")
-        if start_spread is not None and "init_kwargs" not in kwargs:
-            kwargs["init_kwargs"] = {}
-        if start_spread is not None and "start" not in kwargs["init_kwargs"]:
-            kwargs["init_kwargs"]["start"] = {}
+        if start_spread is not None and "init_kwargs" not in sample_kwargs:
+            sample_kwargs["init_kwargs"] = {}
+        if start_spread is not None and "start" not in sample_kwargs["init_kwargs"]:
+            sample_kwargs["init_kwargs"]["start"] = {}
 
         for n_cloud in self.n_clouds:
             if self.verbose:
@@ -213,13 +207,13 @@ class Optimize:
 
             if start_spread is not None:
                 for key, value in start_spread.items():
-                    kwargs["init_kwargs"]["start"][key] = np.linspace(
+                    sample_kwargs["init_kwargs"]["start"][key] = np.linspace(
                         value[0], value[1], n_cloud
                     )
 
             try:
-                self.models[n_cloud].sample(**kwargs)
-                self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
+                self.models[n_cloud].sample(**sample_kwargs)
+                self.models[n_cloud].solve(**solve_kwargs)
                 if self.verbose:
                     for solution in self.models[n_cloud].solutions:
                         print(
@@ -232,13 +226,23 @@ class Optimize:
                 print(f"!!! EXCEPTION n_cloud = {n_cloud} !!!: {ex}")
                 print()
 
-    def sample_smc_all(self, kl_div_threshold: float = 0.1, **kwargs):
+    def sample_smc_all(
+        self,
+        sample_kwargs: Optional[dict] = None,
+        solve_kwargs: Optional[dict] = None,
+    ):
         """Sample posterior distribution of all models using sequential Monte Carlo.
 
-        :param `kl_div_threshold`: GMM convergence threshold
-        :type kl_div_threshold: float, optional
-        :param `**kwargs`: Keyword arguments passed to :func:`model.sample_smc`
+        :param sample_kwargs: Keyword arguments passed to :func:`sample_smc`, defaults to None
+        :type sample_kwargs: Optional[dict], optional
+        :param solve_kwargs: Keyword arguments passed to :func:`solve`, defaults to None
+        :type solve_kwargs: Optional[dict], optional
         """
+        if sample_kwargs is None:
+            sample_kwargs = {}
+        if solve_kwargs is None:
+            solve_kwargs = {}
+
         if self.verbose:
             print(f"Null hypothesis BIC = {self.models[1].null_bic():.3e}")
 
@@ -247,8 +251,8 @@ class Optimize:
                 print(f"Sampling n_cloud = {n_cloud} posterior...")
 
             try:
-                self.models[n_cloud].sample_smc(**kwargs)
-                self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
+                self.models[n_cloud].sample_smc(**sample_kwargs)
+                self.models[n_cloud].solve(**solve_kwargs)
                 if self.verbose:
                     for solution in self.models[n_cloud].solutions:
                         print(
@@ -264,9 +268,9 @@ class Optimize:
     def optimize(
         self,
         bic_threshold: float = 10.0,
-        kl_div_threshold: float = 0.1,
         fit_kwargs: Optional[dict] = None,
         sample_kwargs: Optional[dict] = None,
+        solve_kwargs: Optional[dict] = None,
         start_spread: Optional[dict[str, Iterable[float]]] = None,
         smc: bool = False,
         approx: bool = True,
@@ -282,12 +286,12 @@ class Optimize:
 
         :param bic_threshold: The `best_model` is the first with BIC within `min(BIC)+bic_threshold`, defaults to 10.0
         :type bic_threshold: float, optional
-        :param `kl_div_threshold`: GMM convergence threshold
-        :type kl_div_threshold: float, optional
         :param fit_kwargs: Keyword arguments passed to :func:`fit`, defaults to None
         :type fit_kwargs: Optional[dict], optional
         :param sample_kwargs: Keyword arguments passed to :func:`sample`, defaults to None
         :type sample_kwargs: Optional[dict], optional
+        :param solve_kwargs: Keyword arguments passed to :func:`solve`, defaults to None
+        :type solve_kwargs: Optional[dict], optional
         :param `start_spread`: Keys are parameter names and values are range, defaults to None
         :type start_spread: Optional[dict[str, Iterable[float]]], optional
         :param smc: If True, sample all models using SMC, defaults to False
@@ -301,6 +305,8 @@ class Optimize:
             fit_kwargs = {}
         if sample_kwargs is None:
             sample_kwargs = {}
+        if solve_kwargs is None:
+            solve_kwargs = {}
 
         if start_spread is not None and "start" not in fit_kwargs:
             fit_kwargs["start"] = {}
@@ -344,7 +350,7 @@ class Optimize:
 
                         # sample with MCMC
                         self.models[n_cloud].sample(**sample_kwargs)
-                    self.models[n_cloud].solve(kl_div_threshold=kl_div_threshold)
+                    self.models[n_cloud].solve(**solve_kwargs)
                     if self.verbose:
                         for solution in self.models[n_cloud].solutions:
                             print(
@@ -397,7 +403,7 @@ class Optimize:
                                 )
 
                         self.best_model.sample(**sample_kwargs)
-                    self.best_model.solve(kl_div_threshold=kl_div_threshold)
+                    self.best_model.solve(**solve_kwargs)
                 except Exception as ex:  # pragma: no cover
                     print(f"!!! EXCEPTION n_cloud = {best_n_clouds} !!!: {ex}")
                     print()

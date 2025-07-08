@@ -630,15 +630,12 @@ class BaseModel(ABC):
                 print("Adding log-likelihood to trace")
             pm.compute_log_likelihood(self.trace, progressbar=self.verbose)
 
-    def solve(self, num_gmm_samples: float = 10_000, kl_div_threshold: float = 0.1):
+    def solve(self, **kwargs):
         """Identify unique solutions and break the labeling degeneracy.
         Adds new groups to the `trace` called `solution_{idx}` with the label-corrected posterior
         samples of each unique solution.
 
-        :param num_gmm_samples: Number of samples to generate from Gaussian Mixture Model (GMM), defaults to 10_000
-        :type num_gmm_samples: int, optional
-        :param kl_div_threshold: Kullback-Liebler (KL) divergence threshold, defaults to 0.1
-        :type kl_div_threshold: float, optional
+        :param kwargs: Keyword arguments passed to :func:`cluster_posterior`
         """
         # Drop solutions if they already exist in trace
         for group in list(self.trace.groups()):
@@ -650,9 +647,8 @@ class BaseModel(ABC):
             self.trace.posterior,
             self.n_clouds,
             self._cluster_features,
-            num_gmm_samples=num_gmm_samples,
-            kl_div_threshold=kl_div_threshold,
             seed=self.seed,
+            **kwargs,
         )
         if len(solutions) < 1 and self.verbose:  # pragma: no cover
             print("No solution found!")
