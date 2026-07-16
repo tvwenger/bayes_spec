@@ -1,7 +1,6 @@
 name: bayes_spec-dev
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - ipython
   - jupyter
@@ -13,11 +12,11 @@ dependencies:
   - pytest
   - pytest-cov
   - numpy
-  - pymc>=5
+  - pymc>=5,<6
   - pytensor
   - nutpie
   - numba
-#  - arviz
+  - arviz
   - matplotlib
   - scipy
   - scikit-learn
@@ -27,5 +26,3 @@ dependencies:
   - blackjax
   - numpyro
   - pip
-  - pip:
-    - git+https://github.com/tvwenger/arviz.git@plot_pair_reference_labels
