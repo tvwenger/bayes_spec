@@ -651,7 +651,6 @@ class BaseModel(ABC):
                 initvals=initial_points,
                 step=step,
                 chains=chains,
-                progressbar=self.verbose,
                 discard_tuned_samples=False,
                 compute_convergence_checks=False,
                 random_seed=self.seed,
