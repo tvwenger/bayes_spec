@@ -58,24 +58,8 @@ def test_gauss_model():
 def test_gauss_model_nan():
     # Model with NaN data
     data = {"observation": SpecData(spectral, sim_brightness * np.nan, noise)}
-    model = GaussModel(data, 1, baseline_degree=0, seed=1234, verbose=True)
-    model.add_priors()
-    model.add_likelihood()
-    model._validate()
-
-
-def test_gauss_model_vi():
-    # Fit single-component model with VI
-    model = GaussModel(_DATA, 1, baseline_degree=0, seed=1234, verbose=True)
-    model.add_priors(prior_baseline_coeffs=[1.0])
-    model.add_likelihood()
-    model.fit(n=1000, rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)
-
-
-def test_gauss_model_sample():
-    # Sample single-component model
     model = GaussModel(
-        _DATA, 1, baseline_degree=0, ripples=True, seed=1234, verbose=True
+        data, 1, baseline_degree=0, seed=1234, ripples=True, verbose=True
     )
     model.add_priors(
         prior_baseline_coeffs=[1.0],
@@ -83,6 +67,22 @@ def test_gauss_model_sample():
         prior_ripple_wavenumber=[10.0, 1.0],
         prior_ripple_phase=[0.0, 0.01],
     )
+    model.add_likelihood()
+    model._validate()
+
+
+def test_gauss_model_vi():
+    # Fit single-component model with VI
+    model = GaussModel(_DATA, 1, baseline_degree=0, seed=1234, verbose=True)
+    model.add_priors()
+    model.add_likelihood()
+    model.fit(n=1000, rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)
+
+
+def test_gauss_model_sample():
+    # Sample single-component model
+    model = GaussModel(_DATA, 1, baseline_degree=0, seed=1234, verbose=True)
+    model.add_priors(prior_baseline_coeffs=[1.0])
     model.add_likelihood()
     model.sample(
         n_init=10_000,

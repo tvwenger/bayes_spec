@@ -6,7 +6,7 @@ pymc<6
 pytensor
 nutpie
 numba
-arviz
+arviz<1.0
 matplotlib
 scipy
 scikit-learn
