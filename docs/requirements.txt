@@ -1,7 +1,7 @@
 sphinx_rtd_theme
 nbsphinx
 numpy
-pymc>=5,<6
+pymc==5.28.5
 pytensor
 nutpie
 numba
@@ -10,7 +10,7 @@ matplotlib
 scipy
 scikit-learn
 graphviz
-jaxlib<0.6
-jax<0.6
+jaxlib==0.9.2
+jax==0.9.2
 blackjax
 numpyro
