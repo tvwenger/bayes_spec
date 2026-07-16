@@ -40,6 +40,7 @@ class BaseModel(ABC):
         data: dict[str, SpecData],
         n_clouds: int,
         baseline_degree: int = 0,
+        ripples: bool = False,
         seed: int = 1234,
         verbose: bool = False,
     ):
@@ -51,6 +52,8 @@ class BaseModel(ABC):
         :type n_clouds: int
         :param baseline_degree: Polynomial baseline degree, defaults to 0
         :type baseline_degree: int, optional
+        :param ripples: If True, include ripples in the model, defaults to False
+        :type ripples: bool, optional
         :param seed: Random seed, defaults to 1234
         :type seed: int, optional
         :param verbose: Print verbose output, defaults to False
@@ -58,6 +61,7 @@ class BaseModel(ABC):
         """
         self.n_clouds = n_clouds
         self.baseline_degree = baseline_degree
+        self.ripples = ripples
         self.seed = seed
         self.verbose = verbose
         self.data = data
@@ -80,6 +84,17 @@ class BaseModel(ABC):
             f"baseline_{key}_norm": r"$\beta_{\rm " + key + r"}$"
             for key in self.data.keys()
         }
+        if self.ripples:
+            for key in self.data.keys():
+                self.var_name_map[f"ripple_{key}_amplitude_norm"] = (
+                    r"$A_{\rm " + key + r"}$"
+                )
+                self.var_name_map[f"ripple_{key}_wavenumber_norm"] = (
+                    r"$k_{\rm " + key + r"}$"
+                )
+                self.var_name_map[f"ripple_{key}_phase_norm"] = (
+                    r"$\phi_{\rm " + key + r"}$"
+                )
 
         # set results and convergence checks
         self.reset_results()
@@ -130,7 +145,8 @@ class BaseModel(ABC):
         :return: Free baseline parameter names
         :rtype: Iterable[str]
         """
-        return self._get_param_names("baseline_coeff", deterministics=False)
+        freeRVs = self._get_param_names("baseline_coeff", deterministics=False)
+        return freeRVs
 
     @property
     def baseline_deterministics(self) -> Iterable[str]:
@@ -139,7 +155,8 @@ class BaseModel(ABC):
         :return: Deterministic baseline parameter names
         :rtype: Iterable[str]
         """
-        return self._get_param_names("baseline_coeff", deterministics=True)
+        freeRVs = self._get_param_names("baseline_coeff", deterministics=True)
+        return freeRVs
 
     @property
     def cloud_freeRVs(self) -> Iterable[str]:
@@ -331,20 +348,43 @@ class BaseModel(ABC):
             return np.inf
 
     def add_baseline_priors(
-        self, prior_baseline_coeffs: Optional[dict[str, list[float]]] = None
+        self,
+        prior_baseline_coeffs: Optional[dict[str, list[float]]] = None,
+        prior_ripple_amplitude: Optional[dict[str, float]] = None,
+        prior_ripple_wavenumber: Optional[dict[str, float]] = None,
+        prior_ripple_phase: Optional[dict[str, float]] = None,
     ):
-        """Add baseline priors to the model. The polynomial baseline is evaluated on the normalized data like:
+        """Add baseline priors to the model.
+        The polynomial baseline is evaluated on the normalized data like:
         `baseline_norm = sum_i(coeff[i]/(i+1)**i * spectral_norm**i)`
+        The sinusoidal baseline is evaluated on the normalized data like:
+        `ripple_norm = amplitude * sin(spectral_norm*wavenumber + phase)`
 
         :param prior_baseline_coeffs: Width of normal prior distribution on the normalized baseline polynomial
             coefficients. Keys are dataset names and values are lists of length `baseline_degree+1`. If None,
             use `[1.0]*(baseline_degree+1)` for each dataset, defaults to None
         :type prior_baseline_coeffs: Optional[dict[str, list[float]]], optional
+        :param prior_ripple_amplitude: Width of half-normal prior distribution on the normalized ripple amplitude.
+            Keys are dataset names and values are floats. If None, use `1.0` for each dataset, defaults to None
+        :type prior_ripple_amplitude: Optional[dict[str, float]], optional
+        :param prior_ripple_wavenumber: Mean and width of normal prior distribution on the normalized ripple wavenumber.
+            Keys are dataset names and values are lists of length 2. If None, use `[10.0, 1.0]` for each dataset, defaults to None
+        :type prior_ripple_wavenumber: Optional[dict[str, list[float]]], optional
+        :param prior_ripple_phase: Mean and concentration of Von Mises prior distribution on the normalized ripple phase.
+            Keys are dataset names and values are lists of length 2. If None, use `[0.0, 0.01]` for each dataset, defaults to None
+        :type prior_ripple_phase: Optional[dict[str, list[float]]], optional
         """
         if prior_baseline_coeffs is None:
             prior_baseline_coeffs = {
                 key: [1.0] * (self.baseline_degree + 1) for key in self.data.keys()
             }
+        if prior_ripple_amplitude is None:
+            prior_ripple_amplitude = {key: 1.0 for key in self.data.keys()}
+        if prior_ripple_wavenumber is None:
+            prior_ripple_wavenumber = {key: [10.0, 1.0] for key in self.data.keys()}
+        if prior_ripple_phase is None:
+            prior_ripple_phase = {key: [0.0, 0.01] for key in self.data.keys()}
+
         for key, coeffs in prior_baseline_coeffs.items():
             if len(coeffs) != self.baseline_degree + 1:
                 raise ValueError(
@@ -361,6 +401,22 @@ class BaseModel(ABC):
                     sigma=prior_baseline_coeffs[key],
                     dims="baseline_coeff",
                 )
+            if self.ripples:
+                for key in self.data.keys():
+                    _ = pm.HalfNormal(
+                        f"ripple_{key}_amplitude_norm",
+                        sigma=prior_ripple_amplitude[key],
+                    )
+                    _ = pm.Normal(
+                        f"ripple_{key}_wavenumber_norm",
+                        mu=prior_ripple_wavenumber[key][0],
+                        sigma=prior_ripple_wavenumber[key][1],
+                    )
+                    _ = pm.VonMises(
+                        f"ripple_{key}_phase_norm",
+                        mu=prior_ripple_phase[key][0],
+                        kappa=prior_ripple_phase[key][1],
+                    )
 
     def predict_baseline(
         self, baseline_params: Optional[dict[str, list[float]]] = None
@@ -390,6 +446,14 @@ class BaseModel(ABC):
                 ],
                 axis=0,
             )
+            ripples_norm = 0.0
+            if self.ripples:
+                ripples_norm = baseline_params[f"ripple_{key}_amplitude_norm"] * pt.sin(
+                    dataset.spectral_norm
+                    * baseline_params[f"ripple_{key}_wavenumber_norm"]
+                    + baseline_params[f"ripple_{key}_phase_norm"]
+                )
+            baseline_norm += ripples_norm
             baseline_model[key] = dataset.unnormalize_brightness(baseline_norm)
         return baseline_model
 

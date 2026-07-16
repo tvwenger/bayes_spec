@@ -2,7 +2,7 @@
 gauss_model.py
 Defines GaussModel, a Gaussian line profile model.
 
-Copyright(C) 2024 by
+Copyright(C) 2024-2026 by
 Trey V. Wenger; tvwenger@gmail.com
 This code is licensed under MIT license (see LICENSE for details)
 """
@@ -52,6 +52,9 @@ class GaussModel(BaseModel):
         prior_fwhm: float = 25.0,
         prior_velocity: Iterable[float] = [0.0, 25.0],
         prior_baseline_coeffs: Optional[Iterable[float]] = None,
+        prior_ripple_amplitude: Optional[float] = None,
+        prior_ripple_wavenumber: Optional[Iterable[float]] = None,
+        prior_ripple_phase: Optional[Iterable[float]] = None,
         ordered: bool = False,
     ):
         """Add priors to the model.
@@ -72,9 +75,19 @@ class GaussModel(BaseModel):
         :param prior_baseline_coeffs: Width of normal prior distribution on the normalized baseline polynomial
             coefficients. If None, use `[1.0]*(baseline_degree+1)`, defaults to None
         :type prior_baseline_coeff: float, optional
+        :param prior_ripple_amplitude: Width of half-normal prior distribution on the normalized ripple amplitude.
+            If None, use `1.0`, defaults to None
+        :type prior_ripple_amplitude: float, optional
+        :param prior_ripple_wavenumber: Mean and width of normal prior distribution on the normalized ripple wavenumber.
+            If None, use `[10.0, 1.0]`, defaults to None
+        :type prior_ripple_wavenumber: Iterable[float], optional
+        :param prior_ripple_phase: Mean and concentration of Von Mises prior distribution on the normalized ripple phase.
+            Keys are dataset names and values are lists of length 2. If None, use `[0.0, 0.01]` for each dataset, defaults to None
+        :type prior_ripple_phase: Iterable[float], optional
         :param ordered: If True, assume ordered velocities, defaults to False
         :type ordered: bool
         """
+
         # check inputs
         if not isinstance(prior_line_area, float):
             raise ValueError("prior_line_area must be a number")
@@ -83,18 +96,40 @@ class GaussModel(BaseModel):
         if not isinstance(prior_velocity, list) or len(prior_velocity) != 2:
             raise ValueError("prior_velocity must be a list of two numbers")
         if prior_baseline_coeffs is not None:
-            if not isinstance(prior_baseline_coeffs, list) or len(prior_baseline_coeffs) != self.baseline_degree + 1:
-                raise ValueError("prior_baseline_coeffs must be a list of length baseline_degree + 1")
+            if (
+                not isinstance(prior_baseline_coeffs, list)
+                or len(prior_baseline_coeffs) != self.baseline_degree + 1
+            ):
+                raise ValueError(
+                    "prior_baseline_coeffs must be a list of length baseline_degree + 1"
+                )
 
         # add polynomial baseline priors
         if prior_baseline_coeffs is not None:
             prior_baseline_coeffs = {"observation": prior_baseline_coeffs}
-        super().add_baseline_priors(prior_baseline_coeffs=prior_baseline_coeffs)
+        # add ripple priors
+        if self.ripples:
+            if prior_ripple_amplitude is not None:
+                prior_ripple_amplitude = {"observation": prior_ripple_amplitude}
+            if prior_ripple_wavenumber is not None:
+                prior_ripple_wavenumber = {"observation": prior_ripple_wavenumber}
+            if prior_ripple_phase is not None:
+                prior_ripple_phase = {"observation": prior_ripple_phase}
+        super().add_baseline_priors(
+            prior_baseline_coeffs=prior_baseline_coeffs,
+            prior_ripple_amplitude=prior_ripple_amplitude,
+            prior_ripple_wavenumber=prior_ripple_wavenumber,
+            prior_ripple_phase=prior_ripple_phase,
+        )
 
         with self.model:
             # Line area per cloud
-            line_area_norm = pm.Gamma("line_area_norm", alpha=2.0, beta=1.0, dims="cloud")
-            line_area = pm.Deterministic("line_area", prior_line_area * line_area_norm, dims="cloud")
+            line_area_norm = pm.Gamma(
+                "line_area_norm", alpha=2.0, beta=1.0, dims="cloud"
+            )
+            line_area = pm.Deterministic(
+                "line_area", prior_line_area * line_area_norm, dims="cloud"
+            )
 
             # FWHM line width per cloud
             fwhm_norm = pm.Gamma("fwhm_norm", alpha=2.0, beta=1.0, dims="cloud")
@@ -102,15 +137,31 @@ class GaussModel(BaseModel):
 
             # Centroid velocity per cloud
             if ordered:
-                velocity_norm = pm.Gamma("velocity_norm", alpha=2.0, beta=1.0, dims="cloud")
+                velocity_norm = pm.Gamma(
+                    "velocity_norm", alpha=2.0, beta=1.0, dims="cloud"
+                )
                 velocity_offset = velocity_norm * prior_velocity[1]
-                _ = pm.Deterministic("velocity", prior_velocity[0] + pm.math.cumsum(velocity_offset), dims="cloud")
+                _ = pm.Deterministic(
+                    "velocity",
+                    prior_velocity[0] + pm.math.cumsum(velocity_offset),
+                    dims="cloud",
+                )
             else:
-                velocity_norm = pm.Normal("velocity_norm", mu=0.0, sigma=1.0, dims="cloud")
-                _ = pm.Deterministic("velocity", prior_velocity[0] + prior_velocity[1] * velocity_norm, dims="cloud")
+                velocity_norm = pm.Normal(
+                    "velocity_norm", mu=0.0, sigma=1.0, dims="cloud"
+                )
+                _ = pm.Deterministic(
+                    "velocity",
+                    prior_velocity[0] + prior_velocity[1] * velocity_norm,
+                    dims="cloud",
+                )
 
             # Deterministic amplitude per cloud
-            _ = pm.Deterministic("amplitude", line_area / fwhm / np.sqrt(np.pi / (4.0 * np.log(2.0))), dims="cloud")
+            _ = pm.Deterministic(
+                "amplitude",
+                line_area / fwhm / np.sqrt(np.pi / (4.0 * np.log(2.0))),
+                dims="cloud",
+            )
 
     def predict(self) -> Iterable[float]:
         """Predict observed spectrum from model parameters.
