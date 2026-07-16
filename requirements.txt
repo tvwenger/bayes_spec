@@ -2,7 +2,7 @@ jupyter
 ipykernel
 ipywidgets
 numpy
-pymc>=5
+pymc>=5,<6
 pytensor
 nutpie
 numba
