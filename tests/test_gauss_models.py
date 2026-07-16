@@ -86,8 +86,8 @@ def test_gauss_model_sample():
     model.add_likelihood()
     model.sample(
         n_init=10_000,
-        tune=100,
-        draws=100,
+        tune=500,
+        draws=500,
         chains=2,
         cores=2,
         init_kwargs={
