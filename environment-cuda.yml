@@ -12,7 +12,7 @@ dependencies:
   - flake8
   - pytest
   - pytest-cov
-  - pymc==5.22.0
+  - pymc<6
   - pytensor
   - nutpie
   - numba
@@ -22,8 +22,8 @@ dependencies:
   - scikit-learn
   - graphviz
   - nvidia::cuda-toolkit
-  - jaxlib[cuda]==0.5.3
-  - jax==0.5.3
-  - blackjax
+  - jaxlib[cuda]
+  - jax
+  - blackjax<1.3
   - numpyro
   - pip
