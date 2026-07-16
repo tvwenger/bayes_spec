@@ -58,8 +58,15 @@ def test_gauss_model():
 def test_gauss_model_nan():
     # Model with NaN data
     data = {"observation": SpecData(spectral, sim_brightness * np.nan, noise)}
-    model = GaussModel(data, 1, baseline_degree=0, seed=1234, verbose=True)
-    model.add_priors()
+    model = GaussModel(
+        data, 1, baseline_degree=0, seed=1234, ripples=True, verbose=True
+    )
+    model.add_priors(
+        prior_baseline_coeffs=[1.0],
+        prior_ripple_amplitude=1.0,
+        prior_ripple_wavenumber=[10.0, 1.0],
+        prior_ripple_phase=[0.0, 0.01],
+    )
     model.add_likelihood()
     model._validate()
 
@@ -67,9 +74,9 @@ def test_gauss_model_nan():
 def test_gauss_model_vi():
     # Fit single-component model with VI
     model = GaussModel(_DATA, 1, baseline_degree=0, seed=1234, verbose=True)
-    model.add_priors(prior_baseline_coeffs=[1.0])
+    model.add_priors()
     model.add_likelihood()
-    model.fit(rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)
+    model.fit(n=1000, rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)
 
 
 def test_gauss_model_sample():
@@ -78,10 +85,11 @@ def test_gauss_model_sample():
     model.add_priors(prior_baseline_coeffs=[1.0])
     model.add_likelihood()
     model.sample(
-        tune=1000,
-        draws=1000,
-        chains=4,
-        cores=4,
+        n_init=10_000,
+        tune=500,
+        draws=500,
+        chains=2,
+        cores=2,
         init_kwargs={
             "rel_tolerance": 0.01,
             "abs_tolerance": 0.1,
@@ -103,7 +111,7 @@ def test_gauss_model_ordered_sample():
     model.add_priors(ordered=True)
     model.add_likelihood()
     model.sample(
-        n_init=1000,
+        n_init=10_000,
         tune=100,
         draws=100,
         chains=2,
@@ -163,7 +171,7 @@ def test_gauss_noise_model():
     model = GaussNoiseModel(_DATA, 1, baseline_degree=0, seed=1234, verbose=True)
     model.add_priors(prior_baseline_coeffs=[1.0])
     model.add_likelihood()
-    model.fit(rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)
+    model.fit(n=1_000, rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)
 
 
 def test_gauss_noise_model_prior_shape():

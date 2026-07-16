@@ -29,8 +29,19 @@ class ModelB(ModelA):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def add_priors(self, prior_baseline_coeffs=None):
-        super().add_baseline_priors(prior_baseline_coeffs=prior_baseline_coeffs)
+    def add_priors(
+        self,
+        prior_baseline_coeffs=None,
+        prior_ripple_amplitude=None,
+        prior_ripple_wavenumber=None,
+        prior_ripple_phase=None,
+    ):
+        super().add_baseline_priors(
+            prior_baseline_coeffs=prior_baseline_coeffs,
+            prior_ripple_amplitude=prior_ripple_amplitude,
+            prior_ripple_wavenumber=prior_ripple_wavenumber,
+            prior_ripple_phase=prior_ripple_phase,
+        )
         with self.model:
             x = pm.Normal("x", mu=0.0, sigma=1.0, dims="cloud")
             y = pm.Normal("y", mu=0.0, sigma=1.0)
@@ -67,7 +78,7 @@ def test_valid():
 
 
 def test_attributes():
-    model = ModelC(data, 2, baseline_degree=3, seed=1234, verbose=True)
+    model = ModelC(data, 2, baseline_degree=3, ripples=True, seed=1234, verbose=True)
     model.add_priors()
     with pytest.raises(ValueError):
         model._validate()
@@ -81,10 +92,15 @@ def test_attributes():
     assert model.baseline_deterministics == []
     assert model.cloud_freeRVs == ["x"]
     assert model.cloud_deterministics == ["z"]
-    assert model.hyper_freeRVs == ["y"]
+    assert model.hyper_freeRVs == [
+        "ripple_observation_amplitude_norm",
+        "ripple_observation_wavenumber_norm",
+        "ripple_observation_phase_norm",
+        "y",
+    ]
     assert model.hyper_deterministics == []
     assert model._n_data == 1000
-    assert model._n_params == 7
+    assert model._n_params == 10
     with pytest.raises(ValueError):
         _ = model._get_unique_solution
     assert not model.unique_solution
@@ -93,12 +109,15 @@ def test_attributes():
 
 
 def test_baseline():
-    model = ModelC(data, 2, baseline_degree=3, seed=1234, verbose=True)
+    model = ModelC(data, 2, baseline_degree=3, ripples=True, seed=1234, verbose=True)
     model.add_priors()
     model.add_likelihood()
 
     baseline_params = {
         "baseline_observation_norm": [0.0, 0.0, 0.0, 0.0],
+        "ripple_observation_amplitude_norm": 1.0,
+        "ripple_observation_wavenumber_norm": 10.0,
+        "ripple_observation_phase_norm": 0.0,
     }
     baseline_model = model.predict_baseline(baseline_params=baseline_params)
     assert len(baseline_model["observation"].eval()) == len(spectral)

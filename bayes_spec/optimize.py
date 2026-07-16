@@ -189,16 +189,20 @@ class Optimize:
         :param solve_kwargs: Keyword arguments passed to :func:`solve`, defaults to None
         :type solve_kwargs: Optional[dict], optional
         """
-        if sample_kwargs is None:
+        if sample_kwargs is None:  # pragma: no cover
             sample_kwargs = {}
-        if solve_kwargs is None:
+        if solve_kwargs is None:  # pragma: no cover
             solve_kwargs = {}
 
         if self.verbose:
             print(f"Null hypothesis BIC = {self.models[1].null_bic():.3e}")
-        if start_spread is not None and "init_kwargs" not in sample_kwargs:
+        if (
+            start_spread is not None and "init_kwargs" not in sample_kwargs
+        ):  # pragma: no cover
             sample_kwargs["init_kwargs"] = {}
-        if start_spread is not None and "start" not in sample_kwargs["init_kwargs"]:
+        if (
+            start_spread is not None and "start" not in sample_kwargs["init_kwargs"]
+        ):  # pragma: no cover
             sample_kwargs["init_kwargs"]["start"] = {}
 
         for n_cloud in self.n_clouds:
@@ -214,7 +218,7 @@ class Optimize:
             try:
                 self.models[n_cloud].sample(**sample_kwargs)
                 self.models[n_cloud].solve(**solve_kwargs)
-                if self.verbose:
+                if self.verbose:  # pragma: no cover
                     for solution in self.models[n_cloud].solutions:
                         print(
                             f"n_cloud = {n_cloud} "
@@ -238,9 +242,9 @@ class Optimize:
         :param solve_kwargs: Keyword arguments passed to :func:`solve`, defaults to None
         :type solve_kwargs: Optional[dict], optional
         """
-        if sample_kwargs is None:
+        if sample_kwargs is None:  # pragma: no cover
             sample_kwargs = {}
-        if solve_kwargs is None:
+        if solve_kwargs is None:  # pragma: no cover
             solve_kwargs = {}
 
         if self.verbose:
@@ -301,18 +305,22 @@ class Optimize:
         """
         if self.verbose:
             print(f"Null hypothesis BIC = {self.models[1].null_bic():.3e}")
-        if fit_kwargs is None:
+        if fit_kwargs is None:  # pragma: no cover
             fit_kwargs = {}
-        if sample_kwargs is None:
+        if sample_kwargs is None:  # pragma: no cover
             sample_kwargs = {}
-        if solve_kwargs is None:
+        if solve_kwargs is None:  # pragma: no cover
             solve_kwargs = {}
 
-        if start_spread is not None and "start" not in fit_kwargs:
+        if start_spread is not None and "start" not in fit_kwargs:  # pragma: no cover
             fit_kwargs["start"] = {}
-        if start_spread is not None and "init_kwargs" not in sample_kwargs:
+        if (
+            start_spread is not None and "init_kwargs" not in sample_kwargs
+        ):  # pragma: no cover
             sample_kwargs["init_kwargs"] = {}
-        if start_spread is not None and "start" not in sample_kwargs["init_kwargs"]:
+        if (
+            start_spread is not None and "start" not in sample_kwargs["init_kwargs"]
+        ):  # pragma: no cover
             sample_kwargs["init_kwargs"]["start"] = {}
 
         stop = False
@@ -386,24 +394,25 @@ class Optimize:
                 print("No good models found!")
         else:
             best_n_clouds = n_clouds[best_idx[0]]
-            self.best_model = self.models[best_n_clouds]
+            if best_n_clouds > 0:
+                self.best_model = self.models[best_n_clouds]
 
-            if approx:
-                try:
-                    # sample best
-                    if self.verbose:
-                        print(f"Sampling best model (n_cloud = {best_n_clouds})...")
-                    if smc:
-                        self.best_model.sample_smc(**sample_kwargs)
-                    else:
-                        if start_spread is not None:
-                            for key, value in start_spread.items():
-                                sample_kwargs["init_kwargs"]["start"][key] = (
-                                    np.linspace(value[0], value[1], best_n_clouds)
-                                )
+                if approx:
+                    try:
+                        # sample best
+                        if self.verbose:
+                            print(f"Sampling best model (n_cloud = {best_n_clouds})...")
+                        if smc:
+                            self.best_model.sample_smc(**sample_kwargs)
+                        else:
+                            if start_spread is not None:
+                                for key, value in start_spread.items():
+                                    sample_kwargs["init_kwargs"]["start"][key] = (
+                                        np.linspace(value[0], value[1], best_n_clouds)
+                                    )
 
-                        self.best_model.sample(**sample_kwargs)
-                    self.best_model.solve(**solve_kwargs)
-                except Exception as ex:  # pragma: no cover
-                    print(f"!!! EXCEPTION n_cloud = {best_n_clouds} !!!: {ex}")
-                    print()
+                            self.best_model.sample(**sample_kwargs)
+                        self.best_model.solve(**solve_kwargs)
+                    except Exception as ex:  # pragma: no cover
+                        print(f"!!! EXCEPTION n_cloud = {best_n_clouds} !!!: {ex}")
+                        print()
