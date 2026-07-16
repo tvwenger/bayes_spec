@@ -22,8 +22,8 @@ dependencies:
   - scikit-learn
   - graphviz
   - nvidia::cuda-toolkit
-  - jaxlib[cuda]
-  - jax
+  - jaxlib[cuda]<0.6
+  - jax<0.6
   - blackjax
   - numpyro
   - pip

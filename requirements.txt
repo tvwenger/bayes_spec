@@ -11,7 +11,7 @@ matplotlib
 scipy
 scikit-learn
 graphviz
-jaxlib
-jax
+jaxlib<0.6
+jax<0.6
 blackjax
 numpyro

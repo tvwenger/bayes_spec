@@ -10,7 +10,7 @@ matplotlib
 scipy
 scikit-learn
 graphviz
-jaxlib==0.4.28
-jax==0.4.28
+jaxlib<0.6
+jax<0.6
 blackjax
 numpyro
