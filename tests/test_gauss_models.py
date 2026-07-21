@@ -64,8 +64,7 @@ def test_gauss_model_nan():
     model.add_priors(
         prior_baseline_coeffs=[1.0],
         prior_ripple_amplitude=1.0,
-        prior_ripple_wavenumber=[10.0, 1.0],
-        prior_ripple_phase=[0.0, 0.01],
+        prior_ripple_wavenumber=[1.0, 10.0],
     )
     model.add_likelihood()
     model._validate()
@@ -94,7 +93,7 @@ def test_gauss_model_sample():
             "rel_tolerance": 0.01,
             "abs_tolerance": 0.1,
             "learning_rate": 1e-2,
-            "start": {"velocity_norm": [-3.0]},
+            "start": {"velocity_norm": [0.5]},
         },
     )
     model.solve()

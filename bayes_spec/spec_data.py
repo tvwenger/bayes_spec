@@ -51,9 +51,9 @@ class SpecData:
         else:
             self.noise = noise
 
-        # normalize spectral axis to domain [-np.pi, np.pi]
+        # normalize spectral axis to domain [-1, 1]
         self._spectral_offset = np.mean(self.spectral)
-        self._spectral_scale = np.ptp(self.spectral) / (2.0 * np.pi)
+        self._spectral_scale = np.ptp(self.spectral) / 2.0
         self.spectral_norm = self.normalize_spectral(self.spectral)
 
         # normalize brightness data using standard normalization

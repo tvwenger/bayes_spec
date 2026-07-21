@@ -35,7 +35,7 @@ def test_fit_all():
     opt = Optimize(GaussModel, _DATA, max_n_clouds=1, verbose=True)
     opt.add_priors()
     opt.add_likelihood()
-    start_spread = {"velocity_norm": [-3.0, 3.0]}
+    start_spread = {"velocity_norm": [0.1, 0.9]}
     opt.fit_all(
         start_spread=start_spread,
         **{
@@ -52,7 +52,7 @@ def test_sample_all():
     opt = Optimize(GaussModel, _DATA, max_n_clouds=1, verbose=True)
     opt.add_priors()
     opt.add_likelihood()
-    start_spread = {"velocity_norm": [-3.0, 3.0]}
+    start_spread = {"velocity_norm": [0.1, 0.9]}
     fit_kwargs = {
         "rel_tolerance": 0.01,
         "abs_tolerance": 0.1,
@@ -84,7 +84,7 @@ def test_optimize_vi_mcmc():
     opt = Optimize(GaussModel, _DATA, max_n_clouds=5, verbose=True)
     opt.add_priors()
     opt.add_likelihood()
-    start_spread = {"velocity_norm": [-3.0, 3.0]}
+    start_spread = {"velocity_norm": [0.1, 0.9]}
     fit_kwargs = {
         "rel_tolerance": 0.01,
         "abs_tolerance": 0.1,
@@ -118,7 +118,7 @@ def test_optimize_mcmc():
     opt = Optimize(GaussModel, _DATA, max_n_clouds=1, verbose=True)
     opt.add_priors()
     opt.add_likelihood()
-    start_spread = {"velocity_norm": [-3.0, 3.0]}
+    start_spread = {"velocity_norm": [0.1, 0.9]}
     fit_kwargs = {
         "rel_tolerance": 0.01,
         "abs_tolerance": 0.1,

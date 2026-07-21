@@ -50,11 +50,10 @@ class GaussModel(BaseModel):
         self,
         prior_line_area: float = 100.0,
         prior_fwhm: float = 25.0,
-        prior_velocity: Iterable[float] = [0.0, 25.0],
+        prior_velocity: Iterable[float] = [-25.0, 25.0],
         prior_baseline_coeffs: Optional[Iterable[float]] = None,
         prior_ripple_amplitude: Optional[float] = None,
         prior_ripple_wavenumber: Optional[Iterable[float]] = None,
-        prior_ripple_phase: Optional[Iterable[float]] = None,
         ordered: bool = False,
     ):
         """Add priors to the model.
@@ -68,9 +67,9 @@ class GaussModel(BaseModel):
             defaults to 25.0
         :type prior_fwhm: float, optional
         :param prior_velocity: Prior distribution on line centroid velocity (km s-1), where
-            velocity ~ Normal(mu=prior_velocity[0], sigma=prior_velocity[1]) if :param:ordered is `False`
+            velocity ~ prior_velocity[0] + (prior_velocity[1]-prior_velocity[0])*Beta(alpha=2, beta=2) if :param:ordered is `False`
             velocity(cloud=N) ~ prior_velocity[0] + sum(velocity(cloud<N)) + Gamma(alpha=2.0, beta=1.0/prior_velocity[1]) if :param:ordered is `True`
-            defaults to [0.0, 25.0]
+            defaults to [-25.0, 25.0]
         :type prior_velocity: Iterable[float], optional
         :param prior_baseline_coeffs: Width of normal prior distribution on the normalized baseline polynomial
             coefficients. If None, use `[1.0]*(baseline_degree+1)`, defaults to None
@@ -78,12 +77,9 @@ class GaussModel(BaseModel):
         :param prior_ripple_amplitude: Width of half-normal prior distribution on the normalized ripple amplitude.
             If None, use `1.0`, defaults to None
         :type prior_ripple_amplitude: float, optional
-        :param prior_ripple_wavenumber: Mean and width of normal prior distribution on the normalized ripple wavenumber.
-            If None, use `[10.0, 1.0]`, defaults to None
+        :param prior_ripple_wavenumber: Lower and upper bounds of prior distribution on the normalized ripple wavenumber.
+            Keys are dataset names and values are lists of length 2. If None, use `[1.0, 10.0]` for each dataset, defaults to None
         :type prior_ripple_wavenumber: Iterable[float], optional
-        :param prior_ripple_phase: Mean and concentration of Von Mises prior distribution on the normalized ripple phase.
-            Keys are dataset names and values are lists of length 2. If None, use `[0.0, 0.01]` for each dataset, defaults to None
-        :type prior_ripple_phase: Iterable[float], optional
         :param ordered: If True, assume ordered velocities, defaults to False
         :type ordered: bool
         """
@@ -113,13 +109,10 @@ class GaussModel(BaseModel):
                 prior_ripple_amplitude = {"observation": prior_ripple_amplitude}
             if prior_ripple_wavenumber is not None:
                 prior_ripple_wavenumber = {"observation": prior_ripple_wavenumber}
-            if prior_ripple_phase is not None:
-                prior_ripple_phase = {"observation": prior_ripple_phase}
         super().add_baseline_priors(
             prior_baseline_coeffs=prior_baseline_coeffs,
             prior_ripple_amplitude=prior_ripple_amplitude,
             prior_ripple_wavenumber=prior_ripple_wavenumber,
-            prior_ripple_phase=prior_ripple_phase,
         )
 
         with self.model:
@@ -147,12 +140,13 @@ class GaussModel(BaseModel):
                     dims="cloud",
                 )
             else:
-                velocity_norm = pm.Normal(
-                    "velocity_norm", mu=0.0, sigma=1.0, dims="cloud"
+                velocity_norm = pm.Beta(
+                    "velocity_norm", alpha=2.0, beta=2.0, dims="cloud"
                 )
                 _ = pm.Deterministic(
                     "velocity",
-                    prior_velocity[0] + prior_velocity[1] * velocity_norm,
+                    prior_velocity[0]
+                    + (prior_velocity[1] - prior_velocity[0]) * velocity_norm,
                     dims="cloud",
                 )
 

@@ -257,7 +257,7 @@ class Optimize:
             try:
                 self.models[n_cloud].sample_smc(**sample_kwargs)
                 self.models[n_cloud].solve(**solve_kwargs)
-                if self.verbose:
+                if self.verbose:  # pragma: no cover
                     for solution in self.models[n_cloud].solutions:
                         print(
                             f"n_cloud = {n_cloud} "
