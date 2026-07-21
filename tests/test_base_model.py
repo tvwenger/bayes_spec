@@ -34,13 +34,11 @@ class ModelB(ModelA):
         prior_baseline_coeffs=None,
         prior_ripple_amplitude=None,
         prior_ripple_wavenumber=None,
-        prior_ripple_phase=None,
     ):
         super().add_baseline_priors(
             prior_baseline_coeffs=prior_baseline_coeffs,
             prior_ripple_amplitude=prior_ripple_amplitude,
             prior_ripple_wavenumber=prior_ripple_wavenumber,
-            prior_ripple_phase=prior_ripple_phase,
         )
         with self.model:
             x = pm.Normal("x", mu=0.0, sigma=1.0, dims="cloud")
@@ -93,12 +91,16 @@ def test_attributes():
     assert model.cloud_freeRVs == ["x"]
     assert model.cloud_deterministics == ["z"]
     assert model.hyper_freeRVs == [
-        "ripple_observation_amplitude_norm",
+        "ripple_observation_cos_amplitude_norm",
+        "ripple_observation_sin_amplitude_norm",
         "ripple_observation_wavenumber_norm",
-        "ripple_observation_phase_norm",
         "y",
     ]
-    assert model.hyper_deterministics == []
+    assert model.hyper_deterministics == [
+        "ripple_observation_wavenumber",
+        "ripple_observation_amplitude_norm",
+        "ripple_observation_phase_norm",
+    ]
     assert model._n_data == 1000
     assert model._n_params == 10
     with pytest.raises(ValueError):
@@ -116,7 +118,7 @@ def test_baseline():
     baseline_params = {
         "baseline_observation_norm": [0.0, 0.0, 0.0, 0.0],
         "ripple_observation_amplitude_norm": 1.0,
-        "ripple_observation_wavenumber_norm": 10.0,
+        "ripple_observation_wavenumber": 10.0,
         "ripple_observation_phase_norm": 0.0,
     }
     baseline_model = model.predict_baseline(baseline_params=baseline_params)

@@ -1,12 +1,13 @@
 name: pytest
 
 on:
+  workflow_dispatch:
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths:
-        - 'bayes_spec/**'
-        - 'tests/**'
-        - '.github/workflows/tests.yml'
+      - "bayes_spec/**"
+      - "tests/**"
+      - ".github/workflows/tests.yml"
 
 jobs:
   build:
