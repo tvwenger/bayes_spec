@@ -260,6 +260,7 @@ class BaseModel(ABC):
         """Reset results and convergence checks."""
         self.mean_field = None
         self.approx = None
+        self.fit_tracker = None
         self.fit_mean = None
         self.fit_std = None
         self.trace: az.InferenceData = None
@@ -529,6 +530,8 @@ class BaseModel(ABC):
         abs_tolerance: float = 0.01,
         learning_rate: float = 0.001,
         obj_n_mc: int = 5,
+        n_win: int = 100,
+        total_grad_norm_constraint: float = 10.0,
         start: Optional[dict] = None,
         **kwargs,
     ):
@@ -546,10 +549,15 @@ class BaseModel(ABC):
         :type learning_rate: float, optional
         :param obj_n_mc: Number of Monte Carlo gradient samples, defaults to 5
         :type obj_n_mc: int, optional
+        :param n_win: Number of samples to include in gradient estimate, defaults to 100
+        :type n_win: int, optional
+        :param total_grad_norm_constraint: Normalized gradient threshold, defaults to 10.0
+        :type total_grad_norm_constraint: float, optional
         :param start: Starting point, defaults to None
         :type start: Optional[dict], optional
         :param `**kwargs`: Additional arguments passed to :func:`advi.fit`
         """
+
         # validate
         assert self._validate()
 
@@ -561,12 +569,12 @@ class BaseModel(ABC):
                 random_seed=self.seed,
                 start=start,
             )
-            tracker = pm.callbacks.Tracker(
+            self.fit_tracker = pm.callbacks.Tracker(
                 mean=self.mean_field.approx.mean.eval,
                 std=self.mean_field.approx.std.eval,
             )
             callbacks = [
-                tracker,
+                self.fit_tracker,
                 CheckParametersConvergence(tolerance=rel_tolerance, diff="relative"),
                 CheckParametersConvergence(tolerance=abs_tolerance, diff="absolute"),
             ]
@@ -575,11 +583,14 @@ class BaseModel(ABC):
                 progressbar=self.verbose,
                 callbacks=callbacks,
                 obj_n_mc=obj_n_mc,
-                obj_optimizer=pm.adagrad_window(learning_rate=learning_rate, n_win=10),
+                obj_optimizer=pm.adagrad_window(
+                    learning_rate=learning_rate, n_win=n_win
+                ),
+                total_grad_norm_constraint=total_grad_norm_constraint,
                 **kwargs,
             )
-            self.fit_mean = np.array(tracker["mean"])
-            self.fit_std = np.array(tracker["std"])
+            self.fit_mean = np.array(self.fit_tracker["mean"])
+            self.fit_std = np.array(self.fit_tracker["std"])
             self.trace = self.approx.sample(draws)
             if self.verbose:
                 print("Adding log-likelihood to trace")
