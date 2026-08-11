@@ -524,12 +524,12 @@ class BaseModel(ABC):
 
     def fit(
         self,
-        n: int = 1_000_000,
+        n: int = 100_000,
         draws: int = 1_000,
-        rel_tolerance: float = 0.01,
-        abs_tolerance: float = 0.01,
-        learning_rate: float = 0.001,
-        obj_n_mc: int = 5,
+        rel_tolerance: float = 0.001,
+        abs_tolerance: float = 0.001,
+        learning_rate: float = 0.01,
+        obj_n_mc: int = 25,
         n_win: int = 100,
         total_grad_norm_constraint: float = 10.0,
         start: Optional[dict] = None,
@@ -537,17 +537,17 @@ class BaseModel(ABC):
     ):
         """Approximate posterior distribution using Variational Inference (VI).
 
-        :param n: Number of VI iterations, defaults to 1_000_000
+        :param n: Number of VI iterations, defaults to 100_000
         :type n: int, optional
         :param draws: Number of posterior samples to draw, defaults to 1_000
         :type draws: int, optional
-        :param rel_tolerance: Relative parameter tolerance for VI convergence, defaults to 0.01
+        :param rel_tolerance: Relative parameter tolerance for VI convergence, defaults to 0.001
         :type rel_tolerance: float, optional
-        :param abs_tolerance: Absolute parameter tolerance for VI convergence, defaults to 0.01
+        :param abs_tolerance: Absolute parameter tolerance for VI convergence, defaults to 0.001
         :type abs_tolerance: float, optional
-        :param learning_rate: VI learning rate, defaults to 1e-3
+        :param learning_rate: VI learning rate, defaults to 0.01
         :type learning_rate: float, optional
-        :param obj_n_mc: Number of Monte Carlo gradient samples, defaults to 5
+        :param obj_n_mc: Number of Monte Carlo gradient samples, defaults to 25
         :type obj_n_mc: int, optional
         :param n_win: Number of samples to include in gradient estimate, defaults to 100
         :type n_win: int, optional
@@ -599,7 +599,7 @@ class BaseModel(ABC):
     def sample(
         self,
         init: str = "advi+adapt_diag",
-        n_init: int = 1_000_000,
+        n_init: int = 100_000,
         chains: int = 4,
         init_kwargs: Optional[dict] = None,
         nuts_kwargs: Optional[dict] = None,
@@ -609,7 +609,7 @@ class BaseModel(ABC):
 
         :param init: Initialization strategy, defaults to "advi+adapt_diag"
         :type init: str, optional
-        :param n_init: Number of initialization iterations, defaults to 1_000_000
+        :param n_init: Number of initialization iterations, defaults to 100_000
         :type n_init: int, optional
         :param chains: Number of independent Markov chains, defaults to 4
         :type chains: int, optional
