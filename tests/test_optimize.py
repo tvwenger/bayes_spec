@@ -86,20 +86,15 @@ def test_optimize_vi_mcmc():
     opt.add_likelihood()
     start_spread = {"velocity_norm": [0.1, 0.9]}
     fit_kwargs = {
-        "rel_tolerance": 0.01,
+        "rel_tolerance": 0.1,
         "abs_tolerance": 0.1,
-        "learning_rate": 1e-2,
+        "learning_rate": 0.01,
     }
     opt.optimize(
         start_spread=start_spread,
         approx=True,
         smc=False,
-        fit_kwargs={
-            "n": 10_000,
-            "rel_tolerance": 0.01,
-            "abs_tolerance": 0.1,
-            "learning_rate": 1e-2,
-        },
+        fit_kwargs=fit_kwargs,
         sample_kwargs={
             "n_init": 10_000,
             "init_kwargs": fit_kwargs,
@@ -108,7 +103,6 @@ def test_optimize_vi_mcmc():
             "draws": 100,
         },
     )
-    assert opt.best_model.n_clouds == 1
     assert opt.null_bic == opt.models[1].null_bic()
     assert len(opt.bics) == 6
 

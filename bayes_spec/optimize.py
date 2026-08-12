@@ -386,8 +386,8 @@ class Optimize:
 
         # get best model
         bics = self.bics
-        n_clouds = list(bics.keys())
-        model_bics = list(bics.values())
+        n_clouds = np.array(list(bics.keys()))
+        model_bics = np.array(list(bics.values()))
         best_idx = np.where(model_bics < (np.nanmin(model_bics) + bic_threshold))[0]
         if len(best_idx) == 0:
             if self.verbose:  # pragma: no cover

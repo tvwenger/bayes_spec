@@ -260,6 +260,7 @@ class BaseModel(ABC):
         """Reset results and convergence checks."""
         self.mean_field = None
         self.approx = None
+        self.fit_tracker = None
         self.fit_mean = None
         self.fit_std = None
         self.trace: az.InferenceData = None
@@ -523,33 +524,40 @@ class BaseModel(ABC):
 
     def fit(
         self,
-        n: int = 1_000_000,
+        n: int = 100_000,
         draws: int = 1_000,
-        rel_tolerance: float = 0.01,
-        abs_tolerance: float = 0.01,
-        learning_rate: float = 0.001,
-        obj_n_mc: int = 5,
+        rel_tolerance: float = 0.001,
+        abs_tolerance: float = 0.001,
+        learning_rate: float = 0.01,
+        obj_n_mc: int = 25,
+        n_win: int = 100,
+        total_grad_norm_constraint: float = 10.0,
         start: Optional[dict] = None,
         **kwargs,
     ):
         """Approximate posterior distribution using Variational Inference (VI).
 
-        :param n: Number of VI iterations, defaults to 1_000_000
+        :param n: Number of VI iterations, defaults to 100_000
         :type n: int, optional
         :param draws: Number of posterior samples to draw, defaults to 1_000
         :type draws: int, optional
-        :param rel_tolerance: Relative parameter tolerance for VI convergence, defaults to 0.01
+        :param rel_tolerance: Relative parameter tolerance for VI convergence, defaults to 0.001
         :type rel_tolerance: float, optional
-        :param abs_tolerance: Absolute parameter tolerance for VI convergence, defaults to 0.01
+        :param abs_tolerance: Absolute parameter tolerance for VI convergence, defaults to 0.001
         :type abs_tolerance: float, optional
-        :param learning_rate: VI learning rate, defaults to 1e-3
+        :param learning_rate: VI learning rate, defaults to 0.01
         :type learning_rate: float, optional
-        :param obj_n_mc: Number of Monte Carlo gradient samples, defaults to 5
+        :param obj_n_mc: Number of Monte Carlo gradient samples, defaults to 25
         :type obj_n_mc: int, optional
+        :param n_win: Number of samples to include in gradient estimate, defaults to 100
+        :type n_win: int, optional
+        :param total_grad_norm_constraint: Normalized gradient threshold, defaults to 10.0
+        :type total_grad_norm_constraint: float, optional
         :param start: Starting point, defaults to None
         :type start: Optional[dict], optional
         :param `**kwargs`: Additional arguments passed to :func:`advi.fit`
         """
+
         # validate
         assert self._validate()
 
@@ -561,12 +569,12 @@ class BaseModel(ABC):
                 random_seed=self.seed,
                 start=start,
             )
-            tracker = pm.callbacks.Tracker(
+            self.fit_tracker = pm.callbacks.Tracker(
                 mean=self.mean_field.approx.mean.eval,
                 std=self.mean_field.approx.std.eval,
             )
             callbacks = [
-                tracker,
+                self.fit_tracker,
                 CheckParametersConvergence(tolerance=rel_tolerance, diff="relative"),
                 CheckParametersConvergence(tolerance=abs_tolerance, diff="absolute"),
             ]
@@ -575,11 +583,14 @@ class BaseModel(ABC):
                 progressbar=self.verbose,
                 callbacks=callbacks,
                 obj_n_mc=obj_n_mc,
-                obj_optimizer=pm.adagrad_window(learning_rate=learning_rate, n_win=10),
+                obj_optimizer=pm.adagrad_window(
+                    learning_rate=learning_rate, n_win=n_win
+                ),
+                total_grad_norm_constraint=total_grad_norm_constraint,
                 **kwargs,
             )
-            self.fit_mean = np.array(tracker["mean"])
-            self.fit_std = np.array(tracker["std"])
+            self.fit_mean = np.array(self.fit_tracker["mean"])
+            self.fit_std = np.array(self.fit_tracker["std"])
             self.trace = self.approx.sample(draws)
             if self.verbose:
                 print("Adding log-likelihood to trace")
@@ -588,7 +599,7 @@ class BaseModel(ABC):
     def sample(
         self,
         init: str = "advi+adapt_diag",
-        n_init: int = 1_000_000,
+        n_init: int = 100_000,
         chains: int = 4,
         init_kwargs: Optional[dict] = None,
         nuts_kwargs: Optional[dict] = None,
@@ -598,7 +609,7 @@ class BaseModel(ABC):
 
         :param init: Initialization strategy, defaults to "advi+adapt_diag"
         :type init: str, optional
-        :param n_init: Number of initialization iterations, defaults to 1_000_000
+        :param n_init: Number of initialization iterations, defaults to 100_000
         :type n_init: int, optional
         :param chains: Number of independent Markov chains, defaults to 4
         :type chains: int, optional
