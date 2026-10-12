@@ -11,6 +11,7 @@ from typing import Iterable, Optional
 
 import numpy as np
 import pymc as pm
+import pytensor.tensor as pt
 
 from bayes_spec import BaseModel
 from bayes_spec.utils import gaussian
@@ -172,20 +173,38 @@ class GaussModel(BaseModel):
         ).sum(axis=1)
 
         # Add baseline model
-        baseline_models = self.predict_baseline()
+        baseline_models, ripple_models = self.predict_baseline()
         predicted = predicted_line + baseline_models["observation"]
-        return predicted
+        if self.ripples:
+            predicted_ripples = predicted + ripple_models["observation"]
+            return predicted, predicted_ripples
+        return predicted, None
 
     def add_likelihood(self):
         """Add likelihood to the model. Data key must be "observation"."""
         # Predict emission
-        predicted = self.predict()
+        predicted, predicted_ripples = self.predict()
 
         with self.model:
-            # Evaluate likelihood
-            _ = pm.Normal(
-                "observation",
-                mu=predicted,
-                sigma=self.data["observation"].noise,
-                observed=self.data["observation"].brightness,
-            )
+            if self.ripples:
+                # Evaluate likelihood
+                like = pm.Normal.dist(
+                    mu=predicted, sigma=self.data["observation"].noise
+                )
+                ripples_like = pm.Normal.dist(
+                    mu=predicted_ripples, sigma=self.data["observation"].noise
+                )
+                _ = pm.Mixture(
+                    "observation",
+                    w=self.model["ripple_observation_weight"],
+                    comp_dists=[like, ripples_like],
+                    observed=self.data["observation"].brightness,
+                )
+            else:
+                # Evaluate likelihood
+                _ = pm.Normal(
+                    "observation",
+                    mu=predicted,
+                    sigma=self.data["observation"].noise,
+                    observed=self.data["observation"].brightness,
+                )
