@@ -173,6 +173,16 @@ def test_gauss_noise_model():
     model.fit(n=1_000, rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)
 
 
+def test_gauss_noise_model_ripples():
+    # Fit single-component model with VI
+    model = GaussNoiseModel(
+        _DATA, 1, baseline_degree=0, seed=1234, ripples=True, verbose=True
+    )
+    model.add_priors(prior_baseline_coeffs=[1.0])
+    model.add_likelihood()
+    model.fit(n=1_000, rel_tolerance=0.01, abs_tolerance=0.1, learning_rate=1e-2)
+
+
 def test_gauss_noise_model_prior_shape():
     # Regression tests for https://github.com/tvwenger/bayes_spec/issues/43
     model = GaussNoiseModel(_DATA, 1, baseline_degree=0, seed=1234, verbose=True)

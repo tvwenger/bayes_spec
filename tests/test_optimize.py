@@ -148,7 +148,7 @@ def test_optimize_vi_smc():
         fit_kwargs={
             "n": 10_000,
             "rel_tolerance": 0.01,
-            "abs_tolerance": 0.1,
+            "abs_tolerance": 0.01,
             "learning_rate": 1e-2,
         },
     )

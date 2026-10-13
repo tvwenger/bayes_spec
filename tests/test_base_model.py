@@ -91,6 +91,7 @@ def test_attributes():
     assert model.cloud_freeRVs == ["x"]
     assert model.cloud_deterministics == ["z"]
     assert model.hyper_freeRVs == [
+        "ripple_observation_weight",
         "ripple_observation_cos_amplitude_norm",
         "ripple_observation_sin_amplitude_norm",
         "ripple_observation_wavenumber_norm",
@@ -102,7 +103,7 @@ def test_attributes():
         "ripple_observation_phase_norm",
     ]
     assert model._n_data == 1000
-    assert model._n_params == 10
+    assert model._n_params == 12
     with pytest.raises(ValueError):
         _ = model._get_unique_solution
     assert not model.unique_solution
@@ -121,7 +122,9 @@ def test_baseline():
         "ripple_observation_wavenumber": 10.0,
         "ripple_observation_phase_norm": 0.0,
     }
-    baseline_model = model.predict_baseline(baseline_params=baseline_params)
+    baseline_model, ripple_model = model.predict_baseline(
+        baseline_params=baseline_params
+    )
     assert len(baseline_model["observation"].eval()) == len(spectral)
 
     # regression test for #24
