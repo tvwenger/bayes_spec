@@ -86,6 +86,7 @@ class BaseModel(ABC):
         }
         if self.ripples:
             for key in self.data.keys():
+                self.var_name_map[f"ripple_{key}_weight"] = r"$w_{\rm " + key + r"}$"
                 self.var_name_map[f"ripple_{key}_amplitude_norm"] = (
                     r"$A_{\rm " + key + r"}$"
                 )
@@ -398,6 +399,7 @@ class BaseModel(ABC):
                 )
             if self.ripples:
                 for key in self.data.keys():
+                    _ = pm.Dirichlet(f"ripple_{key}_weight", a=np.ones(2), shape=(2,))
                     cos_amp = pm.Normal(
                         f"ripple_{key}_cos_amplitude_norm",
                         mu=0.0,
@@ -440,13 +442,17 @@ class BaseModel(ABC):
             values are lists of length `baseline_degree+1`. If None, evaluate the baseline model using the current
             model state, defaults to None
         :type baseline_params: Optional[dict[str, list[float]]], optional
-        :return: Un-normalized baseline models for each dataset. Keys are dataset names and values are
+        :return: Un-normalized polynomial baseline models for each dataset. Keys are dataset names and values are
             the un-normalized baseline models.
-        :rtype: dict[str, list[float]]
+        :return: Un-normalized ripple baseline models for each dataset. Keys are dataset names and values are
+            the un-normalized baseline models.
+        :rtype: dict[str, list[float]], dict[str, list[float]]
         """
+
         if baseline_params is None:
             baseline_params = self.model
         baseline_model = {}
+        ripple_model = {}
         for key, dataset in self.data.items():
             # evaluate the baseline
             baseline_norm = pt.sum(
@@ -458,6 +464,8 @@ class BaseModel(ABC):
                 ],
                 axis=0,
             )
+            baseline_model[key] = dataset.unnormalize_brightness(baseline_norm)
+
             if self.ripples:
                 ripples_norm = baseline_params[f"ripple_{key}_amplitude_norm"] * pt.sin(
                     np.pi
@@ -465,9 +473,9 @@ class BaseModel(ABC):
                     * baseline_params[f"ripple_{key}_wavenumber"]
                     + baseline_params[f"ripple_{key}_phase_norm"]
                 )
-                baseline_norm += ripples_norm
-            baseline_model[key] = dataset.unnormalize_brightness(baseline_norm)
-        return baseline_model
+                ripple_model[key] = dataset.unnormalize_brightness(ripples_norm)
+
+        return baseline_model, ripple_model
 
     def sample_prior_predictive(self, samples: int = 50) -> az.InferenceData:
         """Generate prior predictive samples

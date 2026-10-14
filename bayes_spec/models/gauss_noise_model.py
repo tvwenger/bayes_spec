@@ -63,13 +63,26 @@ class GaussNoiseModel(GaussModel):
     def add_likelihood(self):
         """Add likelihood to the model. Data key must be "observation"."""
         # Predict emission
-        predicted = self.predict()
+        predicted, predicted_ripples = self.predict()
 
         with self.model:
-            # Evaluate likelihood
-            _ = pm.Normal(
-                "observation",
-                mu=predicted,
-                sigma=self.model["rms_observation"],
-                observed=self.data["observation"].brightness,
-            )
+            if self.ripples:
+                # Evaluate likelihood
+                like = pm.Normal.dist(mu=predicted, sigma=self.model["rms_observation"])
+                ripples_like = pm.Normal.dist(
+                    mu=predicted_ripples, sigma=self.model["rms_observation"]
+                )
+                _ = pm.Mixture(
+                    "observation",
+                    w=self.model["ripple_observation_weight"],
+                    comp_dists=[like, ripples_like],
+                    observed=self.data["observation"].brightness,
+                )
+            else:
+                # Evaluate likelihood
+                _ = pm.Normal(
+                    "observation",
+                    mu=predicted,
+                    sigma=self.model["rms_observation"],
+                    observed=self.data["observation"].brightness,
+                )
